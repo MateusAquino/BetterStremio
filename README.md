@@ -1,5 +1,5 @@
 <h1 align="center">
-    <img width="600" src="https://github.com/MateusAquino/BetterStremio/assets/16140783/9df7f7b8-4208-4a59-95a7-75a2035911b2" align="center"></img>
+    <img width="500" src="https://github.com/MateusAquino/BetterStremio/assets/16140783/9df7f7b8-4208-4a59-95a7-75a2035911b2" align="center"></img>
 </h1>
 
 
@@ -22,7 +22,7 @@
   </a>
 </p>
 
-Download and run the installer from `releases` page. You can also choose the "Repair" option if you've updated your Stremio's server.js file or BetterStremio is broken.
+Download and run the installer from the [releases page](https://github.com/MateusAquino/BetterStremio/releases/). You can also choose the "Repair" option if you've updated your Stremio's server.js file or BetterStremio is broken.
 
 > [!TIP]
 > The original stremio server can still be used when opening `stremio.exe`. For BetterStremio to work it **must** be opened though the shotcut.
