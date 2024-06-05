@@ -100,6 +100,9 @@ When developing plugins you might need to store/read data or interact with Strem
 | **BetterStremio.Toasts** | `error(title, desc, opts)` <br/> `info(title, desc, opts)` <br/> `success(title, desc, opts)` <br/> `warning(title, desc, opts)` | Toasts notification lib used by Stremio
 | **BetterStremio.StremioRoot** | Read on DevTools for all states and functions | Used by Stremio's Angular client to control inner states
 | **BetterStremio.Player** | Read on DevTools for all states and functions | Video Player used by Stremio.
+| **BetterStremio.Sharing** | Read on DevTools for all states and functions | Stremio's sharing module.
+| **BetterStremio.Modules** | Read on DevTools for all states and functions | All loaded modules.
+| **BetterStremio.Scopes** | Read on DevTools for all states and functions | Stremio scopes from controllers (updates once controller is open).
 
 
 If you need to use any other libraries or modules from Stremio (metadata, subtitles, windowManager), use the function sample below to import them.
