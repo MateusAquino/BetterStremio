@@ -32,6 +32,9 @@ Soon we'll be supporting MacOS and Linux (you can also contribute with an instal
 
 If you want to install it manually check out Contribute section for more information about how it works.
 
+Demo Plugin: https://github.com/MateusAquino/WatchParty  
+Demo Theme: https://github.com/REVENGE977/StremioAmoledTheme
+
 ## 👾 Developing Plugins & Themes
 
 While developing plugins (.js files) and themes (.css files) you should be accessing through the browser at `localhost:11470` for easier reloading and access to Developer Tools.  
