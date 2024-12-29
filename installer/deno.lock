@@ -7,7 +7,6 @@
     "npm:@radix-ui/react-label@^2.1.1": "2.1.1_@types+react@18.3.18_@types+react-dom@18.3.5__@types+react@18.3.18_react@18.3.1_react-dom@18.3.1__react@18.3.1",
     "npm:@radix-ui/react-slot@^1.1.1": "1.1.1_@types+react@18.3.18_react@18.3.1",
     "npm:@radix-ui/react-tooltip@^1.1.6": "1.1.6_@types+react@18.3.18_@types+react-dom@18.3.5__@types+react@18.3.18_react@18.3.1_react-dom@18.3.1__react@18.3.1",
-    "npm:@swc/core@1.10.3": "1.10.3",
     "npm:@types/node@*": "22.5.4",
     "npm:@types/react-dom@^18.3.1": "18.3.5_@types+react@18.3.18",
     "npm:@types/react@^18.3.12": "18.3.18",
@@ -23,6 +22,7 @@
     "npm:tailwind-merge@^2.6.0": "2.6.0",
     "npm:tailwindcss-animate@^1.0.7": "1.0.7_tailwindcss@3.4.17__postcss@8.4.49",
     "npm:tailwindcss@^3.4.17": "3.4.17_postcss@8.4.49",
+    "npm:vite@*": "6.0.6_@types+node@22.5.4",
     "npm:vite@^6.0.1": "6.0.6_@types+node@22.5.4"
   },
   "npm": {
@@ -1341,7 +1341,27 @@
   },
   "workspace": {
     "dependencies": [
-      "npm:systeminformation@^5.23.23"
+      "npm:@deno/vite-plugin@1",
+      "npm:@radix-ui/react-checkbox@^1.1.3",
+      "npm:@radix-ui/react-dialog@^1.1.4",
+      "npm:@radix-ui/react-label@^2.1.1",
+      "npm:@radix-ui/react-slot@^1.1.1",
+      "npm:@radix-ui/react-tooltip@^1.1.6",
+      "npm:@types/react-dom@^18.3.1",
+      "npm:@types/react@^18.3.12",
+      "npm:@vitejs/plugin-react-swc@^3.7.1",
+      "npm:autoprefixer@^10.4.20",
+      "npm:class-variance-authority@~0.7.1",
+      "npm:clsx@^2.1.1",
+      "npm:lucide-react@0.469",
+      "npm:postcss@^8.4.49",
+      "npm:react-dom@^18.3.1",
+      "npm:react@^18.3.1",
+      "npm:systeminformation@^5.23.23",
+      "npm:tailwind-merge@^2.6.0",
+      "npm:tailwindcss-animate@^1.0.7",
+      "npm:tailwindcss@^3.4.17",
+      "npm:vite@^6.0.1"
     ]
   }
 }

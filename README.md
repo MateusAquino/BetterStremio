@@ -151,7 +151,7 @@ This repository is currently available for contributions. If you'd like to help,
    ```bash
    cd installer
    deno install
-   deno dev # develop the frontend with a mocked interface (check: installer\src\webui.ts)
-   deno build # compiles the frontend to dist/
-   deno compile # (run after deno build) generates a webui executable with a working backend for patching files
+   deno task dev # develop the frontend with a mocked interface (check: installer\src\webui.ts)
+   deno task build # compiles the frontend to dist/
+   deno task compile # (run after deno build) generates a webui executable with a working backend for patching files
    ```
