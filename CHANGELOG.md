@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.0.2] - 2024-12-29
+
+### Added
+
+- Windows / Linux compatibility (requires repatching).
+- New open changelog route.
+
+### Removed
+
+-  Windows batch installer: replaced by a universal WebUI installer.
+
+
 ## [1.0.1] - 2024-06-05
 
 ### Added
@@ -25,3 +37,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 [1.0.0]: https://github.com/MateusAquino/BetterStremio/releases/tag/v1.0.0
 [1.0.1]: https://github.com/MateusAquino/BetterStremio/releases/tag/v1.0.1
+[1.0.2]: https://github.com/MateusAquino/BetterStremio/releases/tag/v1.0.2
