@@ -1,0 +1,5 @@
+.vite
+node_modules
+dist
+x
+installer
