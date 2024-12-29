@@ -1,0 +1,9 @@
+.vite
+node_modules
+dist
+x
+BetterStremio x86_64-pc-windows-msvc.exe
+BetterStremio x86_64-linux-gnu
+BetterStremio aarch64-linux-gnu
+BetterStremio x86_64-apple-darwin
+BetterStremio aarch64-apple-darwin

@@ -1,0 +1,8 @@
+{
+  "nodeModulesDir": "none",
+  "imports": {
+    "@/": "./src/",
+    "systeminformation": "npm:systeminformation@^5.23.23",
+    "webui": "https://deno.land/x/webui@2.5.0/mod.ts"
+  }
+}

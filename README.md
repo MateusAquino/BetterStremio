@@ -1,5 +1,5 @@
 <h1 align="center">
-    <img width="500" src="https://github.com/MateusAquino/BetterStremio/assets/16140783/9df7f7b8-4208-4a59-95a7-75a2035911b2" align="center"></img>
+    <img width="200" src="./installer/public/original.png" align="center"></img>
 </h1>
 
 
@@ -7,30 +7,29 @@
 
 ## 💡 How it works
 
-**BetterStremio** patches the `server.js` file to inject code in the local development web server hosted at `127.0.0.1:11470` and adds a loader script to run external plugins and CSS themes. There is no need to download external executables! :)
+**BetterStremio** patches the `server.js` file to inject code in the local development web server hosted at `127.0.0.1:11470` and adds a loader script to run external plugins and CSS themes. There is no need to download external custom Stremio executables! :)
 
 
 ![image](https://github.com/MateusAquino/BetterStremio/assets/16140783/1d721c4f-6493-4ed7-bb6c-ddc804b88630)
-
-
 
 ## 🚀 Getting Started
 
 <p align="left">
   <a target="_blank" href="https://github.com/MateusAquino/BetterStremio">
-    <img width="450px" alt="Installer" title="Installer" align="right" src="https://github.com/MateusAquino/BetterStremio/assets/16140783/61206b7d-d1cd-4c0b-9b4e-608af0cb29f8"></img>
+    <img width="450px" alt="Installer" title="Installer" align="right" src="https://github.com/user-attachments/assets/ff9248ca-2b17-439b-88a2-d28f1c2d9972"></img>
   </a>
 </p>
 
-Download and run the installer from the [releases page](https://github.com/MateusAquino/BetterStremio/releases/). You can also choose the "Repair" option if you've updated your Stremio's server.js file or BetterStremio is broken.
+Download and run the installer from the [releases page](https://github.com/MateusAquino/BetterStremio/releases/). You can also choose the "Uninstall" option to unpatch changes made to Stremio's server.js file and all modified shortcuts.
 
 > [!TIP]
 > The original stremio server can still be used when opening `stremio.exe`. For BetterStremio to work it **must** be opened though the shotcut.
 
 
-Soon we'll be supporting MacOS and Linux (you can also contribute with an installer script).  
+For **Linux users**, it is required to run Stremio manually with the flags: `--development --streaming-server`, please add it to your shortcuts.  
+Arch Linux was the only distro verified, please contribute to support your own distro.  
 
-If you want to install it manually check out Contribute section for more information about how it works.
+If you want to install it manually, or build the installer locally, please check out the Contribute section for more information about how the patching works.
 
 Demo Plugin: https://github.com/MateusAquino/WatchParty  
 Demo Theme: https://github.com/REVENGE977/StremioAmoledTheme
@@ -115,7 +114,7 @@ stremioApp.run([/* libs... */, function (/* callback modules */) => {
 }])
 ```
 
-For further information see examples of `BetterStremio.loader.js` or dive into `blob.js` on Developer Tools to make use of the source code, eg:
+For further information, see examples of `BetterStremio.loader.js` or dive into `blob.js` on Developer Tools to make use of the source code, eg:
 
 ![Stremio blob.js from Network Page](https://github.com/MateusAquino/BetterStremio/assets/16140783/3e957108-2c73-452f-b9f4-f9a983a80627)
 
@@ -126,23 +125,33 @@ For further information see examples of `BetterStremio.loader.js` or dive into `
 - [x] Auto-update for BetterStremio loader
 - [x] Interface for plugins (stremio internals & storage)
 - [x] Sample plugin & theme
+- [x] Installer w/ WebUI
 - [x] Windows installer
-- [ ] MacOS installer
-- [ ] Linux installer
+- [x] Linux installer (verified distros: Arch Linux)
+- [ ] MacOS installer (needs contribution)
 - [ ] Check for updates on plugins & themes (manual)
 - [ ] Internationalization
 
 ## 🤝 Contribute
 
-This repository is currently available for contributions. If you'd like to help here are more advanced things to know about how BetterStremio works:
+This repository is currently available for contributions. If you'd like to help, here are more advanced things to know about how BetterStremio works:
 
 1. The installer patches Stremio's **server.js** file with **patch.js**, updating some routes:
    - `GET /betterstremio/`: Get information about BetterStremio's patch version, path, installed plugins and themes.
    - `GET /betterstremio/folder`: Open plugins/themes folder on user's file explorer.
+   - `GET /betterstremio/changelog`: Open BetterStremio's changelog on the browser.
    - `GET /betterstremio/src/:path`: Static sharing of files on BetterStremio's folder.
    - `POST /betterstremio/update/:path?from=URL`: Replaces a file on BetterStremio's folder with the raw content read from the URL for updates.
    - `GET /`: Patched Stremio version, it read contents from "app.strem.io/shell-v4.4" as usual but injects BetterStremio's loader.
-2. Patch.js has to use **__webpack_require__** from server.js webpack's build, therefore module ids are being fetched from **__webpack_require__.m**.
-3. Patching insert these routes into `server.js` and creates a shortcut with two arguments for Stremio: `--development` and `--streaming-server` (see: [stremio/stremio-shell](https://github.com/stremio/stremio-shell))
-4. BetterStremio loader will automatically update itself on next load (or past 24h) when **BetterStremio.version** is changed in this repository.
-5. If you want to contribute or develop plugins & themes, you can also run stremio locally @ `http://localhost:11470` to access Developer Tools.
+2. Patching means to insert these routes into `server.js` and create shortcuts with two arguments for Stremio: `--development --streaming-server` (see: [stremio/stremio-shell](https://github.com/stremio/stremio-shell))
+3. BetterStremio loader will automatically update itself on next load (or past 24h) when **BetterStremio.version** is changed in this repository.
+4. If you want to ❤️ contribute to develop plugins & themes, note you can run stremio locally in your browser @ `http://localhost:11470` to access Developer Tools.
+5. If you want to ❤️ contribute to BetterStremio and its installer, clone this repository and run:
+
+   ```bash
+   cd installer
+   deno install
+   deno task dev # develop the frontend with a mocked interface (check: installer\src\webui.ts)
+   deno task build # compiles the frontend to dist/
+   deno task compile # (run after deno build) generates a webui executable with a working backend for patching files
+   ```
