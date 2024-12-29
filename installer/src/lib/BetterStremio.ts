@@ -32,14 +32,15 @@ async function download(url: string, filename: string) {
 }
 
 export function getDefaultPath() {
-  if (Deno.build.os === "windows")
-    return "%localAppData%\\Programs\\LNV\\Stremio-4\\";
-  return "/opt/stremio/";
+  return Deno.build.os === "windows"
+    ? `${Deno.env.get("LOCALAPPDATA")}\\Programs\\LNV\\Stremio-4\\`
+    : "/opt/stremio/";
 }
 
 export function getBetterStremioPath(stremioPath: string) {
-  if (Deno.build.os === "windows")
+  if (Deno.build.os === "windows") {
     return path.join(stremioPath, "BetterStremio");
+  }
   return path.join(Deno.env.get("HOME")!, ".config", "BetterStremio");
 }
 
@@ -47,7 +48,7 @@ export async function installExtra(
   stremioPath: string,
   url: string,
   type: "plugins" | "themes",
-  filename: string
+  filename: string,
 ) {
   const BetterStremioPath = getBetterStremioPath(stremioPath);
   try {
@@ -76,7 +77,7 @@ export async function patch(stremioPath: string) {
   try {
     const updatedContents = contents.replace(
       /enginefs\.router\.get/,
-      `${patchContent.trim()}enginefs.router.get`
+      `${patchContent.trim()}enginefs.router.get`,
     );
     Deno.writeTextFileSync(serverJs, updatedContents);
   } catch (e) {
@@ -89,64 +90,107 @@ export async function patch(stremioPath: string) {
   return true;
 }
 
-async function modifyRegistry(
-  _addArgs: string[] = [],
-  _removeArgs: string[] = []
+function updateShortcuts(
+  addArgs: string,
+  removeArgs: string,
 ) {
-  return await true;
-  // const registryPath = `"HKCR\\Stremio\\shell\\open\\command"`;
+  if (Deno.build.os === "windows") {
+    const desktop = new Deno.Command("powershell", {
+      args: [
+        "-c",
+        "[Environment]::GetFolderPath([Environment+SpecialFolder]::Desktop)",
+      ],
+    });
+    const desktopPath = new TextDecoder().decode(desktop.outputSync().stdout)
+      .trim();
 
-  // // Read the current value
-  // const readProcess = new Deno.Command("reg", {
-  //   args: ["query", registryPath, "/ve"],
-  // });
+    const desktopShortcuts = new Deno.Command("powershell", {
+      args: [
+        "-c",
+        `Get-ChildItem -Recurse -Path "${desktopPath}" -Filter "*.lnk" | ForEach-Object {
+      $file = $_.FullName
+        if (Select-String -Path $file -Pattern "stremio.exe") {
+          Write-Output $file
+        }
+      }`,
+      ],
+    });
+    const desktopShortcutsResult = new TextDecoder().decode(
+      desktopShortcuts.outputSync().stdout,
+    );
 
-  // const result = await readProcess.outputSync();
-  // if (!success) {
-  //   console.error(new TextDecoder().decode(error));
-  //   throw new Error("Failed to read registry value.");
-  // }
+    const ProgramDataShortcuts = new Deno.Command("powershell", {
+      args: [
+        "-c",
+        `Get-ChildItem -Recurse -Path "$env:PROGRAMDATA\\Microsoft" -Filter "*.lnk" | ForEach-Object {
+      $file = $_.FullName
+        if (Select-String -Path $file -Pattern "stremio.exe") {
+          Write-Output $file
+        }
+      }`,
+      ],
+    });
+    const ProgramDataShortcutsResult = new TextDecoder().decode(
+      ProgramDataShortcuts.outputSync().stdout,
+    );
 
-  // const registryOutput = new TextDecoder().decode(await readProcess.output());
-  // const match = registryOutput.match(/"(.+?)"/); // Extract the current command
-  // if (!match) {
-  //   throw new Error("Failed to parse registry value.");
-  // }
+    const TaskBarShortcuts = new Deno.Command("powershell", {
+      args: [
+        "-c",
+        `Get-ChildItem -Recurse -Path "$env:APPDATA\\Microsoft\\Internet Explorer\\Quick Launch\\User Pinned\\Taskbar" -Filter "*.lnk" | ForEach-Object {
+      $file = $_.FullName
+        if (Select-String -Path $file -Pattern "stremio.exe") {
+          Write-Output $file
+        }
+      }`,
+      ],
+    });
+    const TaskBarShortcutsResult = new TextDecoder().decode(
+      TaskBarShortcuts.outputSync().stdout,
+    );
 
-  // let command = match[1]; // Current command value
+    const AppDataShortcuts = new Deno.Command("powershell", {
+      args: [
+        "-c",
+        `Get-ChildItem -Recurse -Path "$env:APPDATA\\Microsoft" -Filter "*.lnk" | ForEach-Object {
+      $file = $_.FullName
+        if (Select-String -Path $file -Pattern "stremio.exe") {
+          Write-Output $file
+        }
+      }`,
+      ],
+    });
+    const AppDataShortcutsResult = new TextDecoder().decode(
+      AppDataShortcuts.outputSync().stdout,
+    );
 
-  // // Remove specified arguments
-  // removeArgs.forEach((arg) => {
-  //   const regex = new RegExp(`\\s*${arg}`, "g");
-  //   command = command.replace(regex, "");
-  // });
+    const shortcuts = [
+      desktopShortcutsResult,
+      ProgramDataShortcutsResult,
+      AppDataShortcutsResult,
+      TaskBarShortcutsResult,
+    ].join("").trim().split("\n");
 
-  // // Add specified arguments (if not already present)
-  // addArgs.forEach((arg) => {
-  //   if (!command.includes(arg)) {
-  //     command += ` ${arg}`;
-  //   }
-  // });
-
-  // // Update the registry
-  // const updateProcess = Deno.run({
-  //   cmd: ["reg", "add", registryPath, "/ve", "/d", `"${command}"`, "/f"],
-  //   stdout: "inherit",
-  //   stderr: "inherit",
-  // });
-
-  // const updateStatus = await updateProcess.status();
-  // if (!updateStatus.success) {
-  //   throw new Error("Failed to update registry value.");
-  // }
-
-  // console.log("Registry updated successfully:", command);
+    console.log("Shortcuts found", shortcuts);
+    for (const shortcut of shortcuts) {
+      console.log("Updating shortcut", shortcut);
+      const shortcutPath = shortcut.trim();
+      if (shortcutPath === "") continue;
+      const cmd = new Deno.Command("powershell", {
+        args: [
+          "-c",
+          `[void][Reflection.Assembly]::LoadWithPartialName('IWshRuntimeLibrary');$shell = New-Object -ComObject WScript.Shell;$shortcut = $shell.CreateShortcut('${shortcutPath}');$shortcut.Arguments = $shortcut.Arguments -replace ' ${removeArgs}', '';if ($shortcut.Arguments -notmatch '${addArgs}') {$shortcut.Arguments += ' ${addArgs}'};$shortcut.Save()`,
+        ],
+      });
+      cmd.outputSync();
+    }
+  }
 }
 
 export async function install(
   stremioPath: string,
   installWp: boolean,
-  installAmoled: boolean
+  installAmoled: boolean,
 ) {
   const BetterStremioPath = getBetterStremioPath(stremioPath);
 
@@ -162,38 +206,38 @@ export async function install(
   Deno.mkdirSync(path.join(BetterStremioPath, "plugins"), { recursive: true });
 
   try {
-    console.log("TODO: UNCOMMENT THIS");
-    // await download(
-    //   urlLoader,
-    //   path.join(BetterStremioPath, "BetterStremio.loader.js")
-    // );
-    // await download(
-    //   urlFont1,
-    //   path.join(BetterStremioPath, "fonts", "icon-full-height.ttf")
-    // );
-    // await download(
-    //   urlFont2,
-    //   path.join(BetterStremioPath, "fonts", "icon-full-height.woff")
-    // );
-    // await download(
-    //   urlFont3,
-    //   path.join(BetterStremioPath, "fonts", "PlusJakartaSans.ttf")
-    // );
+    await download(
+      urlLoader,
+      path.join(BetterStremioPath, "BetterStremio.loader.js"),
+    );
+    await download(
+      urlFont1,
+      path.join(BetterStremioPath, "fonts", "icon-full-height.ttf"),
+    );
+    await download(
+      urlFont2,
+      path.join(BetterStremioPath, "fonts", "icon-full-height.woff"),
+    );
+    await download(
+      urlFont3,
+      path.join(BetterStremioPath, "fonts", "PlusJakartaSans.ttf"),
+    );
   } catch (e) {
     console.error(e);
     return "Failed to download BetterStremio files, make sure you have an established internet connection.";
   }
 
-  const uninstallResult = await uninstall(stremioPath);
+  const uninstallResult = await uninstall(stremioPath, false);
   if (uninstallResult !== true) return uninstallResult;
   const patchResult = await patch(stremioPath);
   if (patchResult !== true) return patchResult;
 
   try {
-    await modifyRegistry(["--development", "--streaming-server"], []);
+    updateShortcuts("--development --streaming-server", "");
   } catch (e) {
     console.error(e);
-    return "Failed to update registry, make sure BetterStremio is allowed to modify the registry.";
+    return "Failed to update existing Stremio shortcuts args: " +
+      (e as Error).toString();
   }
 
   const resultWp = installWp
@@ -206,12 +250,16 @@ export async function install(
   return resultWp && resultAmoled
     ? true
     : "BetterStremio was successfully installed, but these extras failed: " +
-        (resultWp ? "" : "WatchParty") +
-        (!resultWp && !resultAmoled ? ", " : "") +
-        (resultAmoled ? "" : "Amoled theme");
+      (resultWp ? "" : "WatchParty") +
+      (!resultWp && !resultAmoled ? ", " : "") +
+      (resultAmoled ? "" : "Amoled theme");
 }
 
-export async function uninstall(stremioPath: string) {
+// deno-lint-ignore require-await
+export async function uninstall(
+  stremioPath: string,
+  shouldUpdateShortcuts = true,
+) {
   const serverJs = path.join(stremioPath, "server.js");
   let contents;
   try {
@@ -226,10 +274,11 @@ export async function uninstall(stremioPath: string) {
   if (!contents.includes(start)) return true;
   const startIdx = contents.indexOf(start);
   const endIdx = contents.indexOf(end, startIdx);
-  if (startIdx === -1 || endIdx === -1)
+  if (startIdx === -1 || endIdx === -1) {
     return "Failed to uninstall BetterStremio, is your Stremio installation corrupted?";
-  const newContents =
-    contents.slice(0, startIdx) + contents.slice(endIdx + end.length);
+  }
+  const newContents = contents.slice(0, startIdx) +
+    contents.slice(endIdx + end.length);
   try {
     Deno.writeTextFileSync(serverJs, newContents);
   } catch (e) {
@@ -242,11 +291,15 @@ export async function uninstall(stremioPath: string) {
   }
 
   try {
-    await modifyRegistry([], ["--development", "--streaming-server"]);
+    if (shouldUpdateShortcuts) {
+      updateShortcuts("", "--development --streaming-server");
+    }
   } catch (e) {
     console.error(e);
-    return "Failed to update registry, make sure BetterStremio is allowed to modify the registry.";
+    return "Failed to update existing Stremio shortcuts args: " +
+      (e as Error).toString();
   }
+
   return true;
 }
 

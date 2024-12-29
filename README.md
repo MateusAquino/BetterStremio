@@ -1,5 +1,5 @@
 <h1 align="center">
-    <img width="500" src="https://github.com/MateusAquino/BetterStremio/assets/16140783/9df7f7b8-4208-4a59-95a7-75a2035911b2" align="center"></img>
+    <img width="320" src="./installer/public/original.png" align="center"></img>
 </h1>
 
 
@@ -126,9 +126,10 @@ For further information see examples of `BetterStremio.loader.js` or dive into `
 - [x] Auto-update for BetterStremio loader
 - [x] Interface for plugins (stremio internals & storage)
 - [x] Sample plugin & theme
+- [x] Installer w/ WebUI
 - [x] Windows installer
-- [ ] MacOS installer
-- [ ] Linux installer
+- [x] Linux installer (tested distros: Arch Linux)
+- [ ] MacOS installer (needs contribution)
 - [ ] Check for updates on plugins & themes (manual)
 - [ ] Internationalization
 
