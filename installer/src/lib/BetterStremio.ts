@@ -23,7 +23,9 @@ const urlAmoled =
 const unixAlert = (src: string) =>
   Deno.build.os === "windows"
     ? ""
-    : ` For Unix systems, run before patching:\n\nsudo chown username ${src}`;
+    : `\n\nFor Unix systems, run before patching:\n\nsudo chown username ${
+      src.endsWith("/") ? src : src + "/"
+    }*`;
 
 async function download(url: string, filename: string) {
   console.log("Downloading", url, "to", filename);
@@ -84,13 +86,14 @@ export async function patch(stremioPath: string) {
     console.error(e);
     return (
       "Failed to update server.js, make sure BetterStremio is allowed to write to Stremio files." +
-      unixAlert(serverJs)
+      unixAlert(stremioPath)
     );
   }
   return true;
 }
 
 function updateShortcuts(
+  stremioPath: string,
   addArgs: string,
   removeArgs: string,
 ) {
@@ -101,7 +104,8 @@ function updateShortcuts(
         "[Environment]::GetFolderPath([Environment+SpecialFolder]::Desktop)",
       ],
     });
-    const desktopPath = new TextDecoder().decode(desktop.outputSync().stdout)
+    const desktopPath = new TextDecoder()
+      .decode(desktop.outputSync().stdout)
       .trim();
 
     const desktopShortcuts = new Deno.Command("powershell", {
@@ -169,7 +173,10 @@ function updateShortcuts(
       ProgramDataShortcutsResult,
       AppDataShortcutsResult,
       TaskBarShortcutsResult,
-    ].join("").trim().split("\n");
+    ]
+      .join("")
+      .trim()
+      .split("\n");
 
     console.log("Shortcuts found", shortcuts);
     for (const shortcut of shortcuts) {
@@ -179,11 +186,19 @@ function updateShortcuts(
       const cmd = new Deno.Command("powershell", {
         args: [
           "-c",
-          `[void][Reflection.Assembly]::LoadWithPartialName('IWshRuntimeLibrary');$shell = New-Object -ComObject WScript.Shell;$shortcut = $shell.CreateShortcut('${shortcutPath}');$shortcut.Arguments = $shortcut.Arguments -replace ' ${removeArgs}', '';if ($shortcut.Arguments -notmatch '${addArgs}') {$shortcut.Arguments += ' ${addArgs}'};$shortcut.Save()`,
+          `[void][Reflection.Assembly]::LoadWithPartialName('IWshRuntimeLibrary');$shell = New-Object -ComObject WScript.Shell;$shortcut = $shell.CreateShortcut('${shortcutPath}');$shortcut.Arguments = $shortcut.Arguments -replace '${removeArgs}', '';if ($shortcut.Arguments -notmatch '${addArgs}') {$shortcut.Arguments += '${addArgs}'};$shortcut.Save()`,
         ],
       });
       cmd.outputSync();
     }
+  } else {
+    const desktopApp = path.join(stremioPath, "smartcode-stremio.desktop");
+    const desktopAppContents = Deno.readTextFileSync(desktopApp);
+    const rgx = /Exec=(?!.*--development --streaming-server.*).*/;
+    const updatedDesktopAppContents = desktopAppContents
+      .replace(removeArgs, "")
+      .replace(rgx, `$&${addArgs}`);
+    Deno.writeTextFileSync(desktopApp, updatedDesktopAppContents);
   }
 }
 
@@ -233,11 +248,14 @@ export async function install(
   if (patchResult !== true) return patchResult;
 
   try {
-    updateShortcuts("--development --streaming-server", "");
+    updateShortcuts(stremioPath, " --development --streaming-server", "");
   } catch (e) {
     console.error(e);
-    return "Failed to update existing Stremio shortcuts args: " +
-      (e as Error).toString();
+    return (
+      "Failed to update existing Stremio shortcuts args: " +
+      (e as Error).toString() +
+      unixAlert(stremioPath)
+    );
   }
 
   const resultWp = installWp
@@ -268,7 +286,7 @@ export async function uninstall(
     console.error(e);
     return (
       "Failed to read server.js, make sure BetterStremio is allowed to access Stremio files." +
-      unixAlert(serverJs)
+      unixAlert(stremioPath)
     );
   }
   if (!contents.includes(start)) return true;
@@ -286,18 +304,21 @@ export async function uninstall(
 
     return (
       "Failed to update server.js, make sure BetterStremio is allowed to write to Stremio files." +
-      unixAlert(serverJs)
+      unixAlert(stremioPath)
     );
   }
 
   try {
     if (shouldUpdateShortcuts) {
-      updateShortcuts("", "--development --streaming-server");
+      updateShortcuts(stremioPath, "", " --development --streaming-server");
     }
   } catch (e) {
     console.error(e);
-    return "Failed to update existing Stremio shortcuts args: " +
-      (e as Error).toString();
+    return (
+      "Failed to update existing Stremio shortcuts args: " +
+      (e as Error).toString() +
+      unixAlert(stremioPath)
+    );
   }
 
   return true;
