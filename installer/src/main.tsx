@@ -10,5 +10,5 @@ createRoot(document.getElementById("root") as HTMLElement).render(
     <div className="min-h-screen bg-gray-900">
       <InstallerUI />
     </div>
-  </StrictMode>
+  </StrictMode>,
 );

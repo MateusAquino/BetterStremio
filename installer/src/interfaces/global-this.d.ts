@@ -7,7 +7,7 @@ declare global {
   var install: (
     path: string,
     installWp: boolean,
-    installAmoled: boolean
+    installAmoled: boolean,
   ) => void;
   var uninstall: (path: string) => void;
   var webui: {

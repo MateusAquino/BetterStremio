@@ -1,12 +1,12 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button.tsx";
 import {
+  CircleHelp,
   Clapperboard,
-  ExternalLink,
   Download,
+  ExternalLink,
   Trash2,
   X,
-  CircleHelp,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox.tsx";
 import { Input } from "@/components/ui/input.tsx";
@@ -19,12 +19,12 @@ import {
 } from "@/components/ui/tooltip.tsx";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
-  DialogClose,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog.tsx";
 
 export default function InstallerUI() {
@@ -44,13 +44,13 @@ export default function InstallerUI() {
     const handleContextmenu = (e: MouseEvent) => e.preventDefault();
     document.addEventListener("contextmenu", handleContextmenu);
     globalThis.webui.setEventCallback(
-      (e) => e == globalThis.webui.event.CONNECTED && setConnected(true)
+      (e) => e == globalThis.webui.event.CONNECTED && setConnected(true),
     );
     return () => document.removeEventListener("contextmenu", handleContextmenu);
   }, []);
 
   useEffect(() => {
-    if (connected)
+    if (connected) {
       (async () => {
         setPath(await globalThis.getPath());
         globalThis.asyncResult = (result) => {
@@ -63,7 +63,7 @@ export default function InstallerUI() {
                 {result.type === "install"
                   ? "Installation/reparation successful!"
                   : "Uninstallation successful!"}
-              </span>
+              </span>,
             );
             setChildren(
               <div className="grid gap-4">
@@ -89,7 +89,7 @@ export default function InstallerUI() {
                     </>
                   )}
                 </span>
-              </div>
+              </div>,
             );
             setDialogOpen(true);
           } else {
@@ -99,7 +99,7 @@ export default function InstallerUI() {
                 {result.type === "install"
                   ? "Error on installation/reparation"
                   : "Error on uninstallation"}
-              </span>
+              </span>,
             );
             setChildren(
               <div className="grid gap-4">
@@ -107,14 +107,14 @@ export default function InstallerUI() {
                   An error occurred while{" "}
                   {result.type === "install"
                     ? "installing/reparing"
-                    : "uninstalling"}{" "}
-                  BetterStremio: <br />
+                    : "uninstalling"} BetterStremio: <br />
                   <br />
                   <pre>
                     <code>{result.result}</code>
                   </pre>
                   <br />
-                  If you are unable to resolve the issue, please seek help on{" "}
+                  If you are unable to resolve the issue, please seek help on
+                  {" "}
                   <a
                     href="https://github.com/MateusAquino/BetterStremio/issues"
                     target="_blank"
@@ -125,20 +125,22 @@ export default function InstallerUI() {
                   </a>
                   .
                 </span>
-              </div>
+              </div>,
             );
             setDialogOpen(true);
           }
         };
       })();
+    }
   }, [connected]);
 
   useEffect(() => {
-    if (connected)
+    if (connected) {
       (async () => {
         const validPath = await globalThis.validatePath(path);
         setIsValidPath(validPath === "true");
       })();
+    }
   }, [path]);
 
   const handleInstall = () => {
@@ -162,10 +164,8 @@ export default function InstallerUI() {
     (connected && (
       <div className="h-screen flex flex-col">
         <div
-          className={
-            "flex bg-gray-900 text-gray-100 p-8 " +
-            (status ? "h-[calc(100%-57px)]" : "h-full")
-          }
+          className={"flex bg-gray-900 text-gray-100 p-8 " +
+            (status ? "h-[calc(100%-57px)]" : "h-full")}
         >
           <div className="w-2/3 pr-8 border-r border-gray-700 overflow-y-auto scroll-smooth">
             {/* Logo Section */}
@@ -250,7 +250,8 @@ export default function InstallerUI() {
                 },
                 {
                   title: "Documentation",
-                  url: "https://github.com/MateusAquino/BetterStremio/blob/main/README.md#-developing-plugins--themes",
+                  url:
+                    "https://github.com/MateusAquino/BetterStremio/blob/main/README.md#-developing-plugins--themes",
                   description:
                     "Guides and references for Plugins and Themes developers",
                 },
@@ -274,7 +275,8 @@ export default function InstallerUI() {
                 },
                 {
                   title: "Changelog",
-                  url: "https://github.com/MateusAquino/BetterStremio/blob/main/CHANGELOG.md",
+                  url:
+                    "https://github.com/MateusAquino/BetterStremio/blob/main/CHANGELOG.md",
                   description:
                     "See what's new in the latest BetterStremio version",
                 },
@@ -341,8 +343,7 @@ export default function InstallerUI() {
                     id="path"
                     value={path}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setPath(e.target.value)
-                    }
+                      setPath(e.target.value)}
                     placeholder="Stremio installation path"
                     className="bg-gray-800 border-gray-600 w-full"
                   />
