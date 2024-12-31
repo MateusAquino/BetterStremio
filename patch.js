@@ -35,7 +35,7 @@ enginefs.router.use("/better-stremio/src", (function(req, res, next) {
     const path = requireModule("path");
     const requestedPath = req.path.replace(/^\/better-stremio\/src/, "");
     const staticFolder = getBetterStremioPath();
-    const filePath = path.join(staticFolder, requestedPath);
+    const filePath = path.join(staticFolder, requestedPath.replace(/[#?].*$/, ''));
 
     res.setHeader("Access-Control-Allow-Origin", "*");
 
