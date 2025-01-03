@@ -1,5 +1,5 @@
 <h1 align="center">
-    <img width="200" src="./installer/public/original.png" align="center"></img>
+    <img width="200" src="./logo.png" align="center"></img>
 </h1>
 
 
