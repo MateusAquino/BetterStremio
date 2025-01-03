@@ -1,5 +1,7 @@
 /// <reference lib="deno.ns" />
 
+// @ts-ignore: Importing @types/webui breaks the language server
+import { WebUIEvent } from "@types/webui";
 import path from "node:path";
 
 const start = "/* BetterStremio:start */";
@@ -47,11 +49,13 @@ export function getBetterStremioPath(stremioPath: string) {
 }
 
 export async function installExtra(
+  event: WebUIEvent,
   stremioPath: string,
   url: string,
   type: "plugins" | "themes",
   filename: string,
 ) {
+  event.window.run(`setStatus('Downloading ${filename}...')`);
   const BetterStremioPath = getBetterStremioPath(stremioPath);
   try {
     await download(url, path.join(BetterStremioPath, type, filename));
@@ -61,8 +65,9 @@ export async function installExtra(
   }
 }
 
-export async function patch(stremioPath: string) {
+export async function patch(event: WebUIEvent, stremioPath: string) {
   console.log("Patching Stremio");
+  event.window.run("setStatus('Patching Stremio...')");
 
   let patchContent;
   try {
@@ -93,17 +98,22 @@ export async function patch(stremioPath: string) {
 }
 
 function updateShortcuts(
+  event: WebUIEvent,
   stremioPath: string,
   addArgs: string,
   removeArgs: string,
 ) {
   if (Deno.build.os === "windows") {
+    event.window.run(
+      "setStatus('Scanning for existing Stremio shortcuts (this may take a while)...')",
+    );
     const desktop = new Deno.Command("powershell", {
       args: [
         "-c",
         "[Environment]::GetFolderPath([Environment+SpecialFolder]::Desktop)",
       ],
     });
+
     const desktopPath = new TextDecoder()
       .decode(desktop.outputSync().stdout)
       .trim();
@@ -119,6 +129,7 @@ function updateShortcuts(
       }`,
       ],
     });
+
     const desktopShortcutsResult = new TextDecoder().decode(
       desktopShortcuts.outputSync().stdout,
     );
@@ -178,6 +189,10 @@ function updateShortcuts(
       .trim()
       .split("\n");
 
+    event.window.run(
+      "setStatus('Found " + shortcuts.length +
+        " shortcuts, updating cmd args (this may take a while)...')",
+    );
     console.log("Shortcuts found", shortcuts);
     for (const shortcut of shortcuts) {
       console.log("Updating shortcut", shortcut);
@@ -192,6 +207,9 @@ function updateShortcuts(
       cmd.outputSync();
     }
   } else {
+    event.window.run(
+      "setStatus('Updating smartcode-stremio.desktop shortcut...')",
+    );
     const desktopApp = path.join(stremioPath, "smartcode-stremio.desktop");
     const desktopAppContents = Deno.readTextFileSync(desktopApp);
     const rgx = /Exec=(?!.*--development --streaming-server.*).*/;
@@ -203,10 +221,12 @@ function updateShortcuts(
 }
 
 export async function install(
+  event: WebUIEvent,
   stremioPath: string,
   installWp: boolean,
   installAmoled: boolean,
 ) {
+  event.window.run("setStatus('Creating BetterStremio folder...')");
   const BetterStremioPath = getBetterStremioPath(stremioPath);
 
   try {
@@ -221,17 +241,27 @@ export async function install(
   Deno.mkdirSync(path.join(BetterStremioPath, "plugins"), { recursive: true });
 
   try {
+    event.window.run("setStatus('Downloading BetterStremio loader...')");
     await download(
       urlLoader,
       path.join(BetterStremioPath, "BetterStremio.loader.js"),
+    );
+    event.window.run(
+      "setStatus('Downloading missing Stremio fonts (icon-full-height.ttf)...')",
     );
     await download(
       urlFont1,
       path.join(BetterStremioPath, "fonts", "icon-full-height.ttf"),
     );
+    event.window.run(
+      "setStatus('Downloading missing Stremio fonts (icon-full-height.woff)...')",
+    );
     await download(
       urlFont2,
       path.join(BetterStremioPath, "fonts", "icon-full-height.woff"),
+    );
+    event.window.run(
+      "setStatus('Downloading missing Stremio fonts (PlusJakartaSans.ttf)...')",
     );
     await download(
       urlFont3,
@@ -242,13 +272,19 @@ export async function install(
     return "Failed to download BetterStremio files, make sure you have an established internet connection.";
   }
 
-  const uninstallResult = await uninstall(stremioPath, false);
+  event.window.run("setStatus('Removing previous BetterStremio patches...')");
+  const uninstallResult = await uninstall(event, stremioPath, false);
   if (uninstallResult !== true) return uninstallResult;
-  const patchResult = await patch(stremioPath);
+  const patchResult = await patch(event, stremioPath);
   if (patchResult !== true) return patchResult;
 
   try {
-    updateShortcuts(stremioPath, " --development --streaming-server", "");
+    updateShortcuts(
+      event,
+      stremioPath,
+      " --development --streaming-server",
+      "",
+    );
   } catch (e) {
     console.error(e);
     return (
@@ -259,10 +295,10 @@ export async function install(
   }
 
   const resultWp = installWp
-    ? installExtra(stremioPath, urlWp, "plugins", "WatchParty.plugin.js")
+    ? installExtra(event, stremioPath, urlWp, "plugins", "WatchParty.plugin.js")
     : true;
   const resultAmoled = installAmoled
-    ? installExtra(stremioPath, urlAmoled, "themes", "amoled.theme.css")
+    ? installExtra(event, stremioPath, urlAmoled, "themes", "amoled.theme.css")
     : true;
 
   return resultWp && resultAmoled
@@ -275,6 +311,7 @@ export async function install(
 
 // deno-lint-ignore require-await
 export async function uninstall(
+  event: WebUIEvent,
   stremioPath: string,
   shouldUpdateShortcuts = true,
 ) {
@@ -290,6 +327,7 @@ export async function uninstall(
     );
   }
   if (!contents.includes(start)) return true;
+  event.window.run("setStatus('Unpatching Stremio...')");
   const startIdx = contents.indexOf(start);
   const endIdx = contents.indexOf(end, startIdx);
   if (startIdx === -1 || endIdx === -1) {
@@ -310,7 +348,12 @@ export async function uninstall(
 
   try {
     if (shouldUpdateShortcuts) {
-      updateShortcuts(stremioPath, "", " --development --streaming-server");
+      updateShortcuts(
+        event,
+        stremioPath,
+        "",
+        " --development --streaming-server",
+      );
     }
   } catch (e) {
     console.error(e);

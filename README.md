@@ -98,7 +98,7 @@ When developing plugins you might need to store/read data or interact with Strem
 | **BetterStremio.Data**  |  `store: (plugin, key, value)` <br/> `read: (plugin, key)` <br/> `delete: (plugin, key)` | Read/Store information from storage |
 | **BetterStremio.Plugins** | `enable: (plugin)` <br/> `disable: (plugin)` <br/> `reload: ()` | Used internally to control plugin states |
 | **BetterStremio.Themes** | `enable: (theme)` <br/> `disable: (theme)` <br/> `reload: ()` | Used internally to control theme states |
-| **BetterStremio.Internal** | `fetch: (route='/', async=true)` <br/> `update: (filename, sourceUrl)` <br/> `reloadInfo: ()` <br/> <br/> `enabledPlugins` <br/> `enabledThemes` <br/> `enabledThemes` <br/> `plugins` <br/> `themes` | Required functions and variables for BetterStremio loader to handle plugins, themes and autoupdates | 
+| **BetterStremio.Internal** | `fetch: (route='/', async=true)` <br/> `update: (filename, sourceUrl)` <br/> `reloadInfo: ()` <br/> `reloadUI: ()` <br/> <br/> `enabledPlugins` <br/> `enabledThemes` <br/> `enabledThemes` <br/> `plugins` <br/> `themes` | Required functions and variables for BetterStremio loader to handle plugins, themes and autoupdates | 
 | **BetterStremio.Toasts** | `error(title, desc, opts)` <br/> `info(title, desc, opts)` <br/> `success(title, desc, opts)` <br/> `warning(title, desc, opts)` | Toasts notification lib used by Stremio
 | **BetterStremio.StremioRoot** | Read on DevTools for all states and functions | Used by Stremio's Angular client to control inner states
 | **BetterStremio.Player** | Read on DevTools for all states and functions | Video Player used by Stremio.
@@ -129,7 +129,7 @@ For further information, see examples of `BetterStremio.loader.js` or dive into 
 - [x] Windows installer
 - [x] Linux installer (verified distros: Arch Linux)
 - [ ] MacOS installer (needs contribution)
-- [ ] Check for updates on plugins & themes (manual)
+- [x] Check for updates on plugins & themes (manual)
 - [ ] Internationalization
 
 ## 🤝 Contribute

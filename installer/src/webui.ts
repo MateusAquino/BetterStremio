@@ -14,6 +14,10 @@ if (import.meta.env.MODE === "development") {
   };
 }
 
+globalThis.setStatus = (_status) => {
+  console.error("Set Status (setStatus/1) called before definition");
+};
+
 globalThis.asyncResult = (_result) => {
   console.error("Async Result (asyncResult/1) called before definition");
 };

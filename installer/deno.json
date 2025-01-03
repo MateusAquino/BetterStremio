@@ -2,11 +2,12 @@
   "tasks": {
     "dev": "deno run -A --node-modules-dir npm:vite",
     "build": "deno run -A --node-modules-dir npm:vite build",
-    "compile": "deno compile --config compile.options.json --node-modules-dir=false --include dist --output 'BetterStremio x86_64-pc-windows-msvc.exe' --target x86_64-pc-windows-msvc --icon public/original.ico --allow-sys --allow-env --allow-net --allow-read --allow-write --allow-run --allow-ffi main.ts",
-    "compile-linux-x86_64": "deno compile --config compile.options.json --node-modules-dir=false --include dist --output 'BetterStremio x86_64-linux-gnu' --target x86_64-unknown-linux-gnu --allow-sys --allow-env --allow-net --allow-read --allow-write --allow-run --allow-ffi main.ts",
-    "compile-linux-aarch64": "deno compile --config compile.options.json --node-modules-dir=false --include dist --output 'BetterStremio aarch64-linux-gnu' --target aarch64-unknown-linux-gnu --allow-sys --allow-env --allow-net --allow-read --allow-write --allow-run --allow-ffi main.ts",
-    "compile-macos-x86_64": "deno compile --config compile.options.json --node-modules-dir=false --include dist --output 'BetterStremio x86_64-apple-darwin' --target x86_64-apple-darwin --allow-sys --allow-env --allow-net --allow-read --allow-write --allow-run --allow-ffi main.ts",
-    "compile-macos-aarch64": "deno compile --config compile.options.json --node-modules-dir=false --include dist --output 'BetterStremio aarch64-apple-darwin' --target aarch64-apple-darwin --allow-sys --allow-env --allow-net --allow-read --allow-write --allow-run --allow-ffi main.ts"
+    "dev-ui": "deno run -A --node-modules-dir main.ts",
+    "compile": "deno compile --config compile.options.json --include dist --node-modules-dir=false --output 'BetterStremio x86_64-pc-windows-msvc.exe' --target x86_64-pc-windows-msvc --icon icon.ico --allow-env --allow-net --allow-read --allow-write --allow-run --allow-ffi main.ts",
+    "compile-linux-x86_64": "deno compile --config compile.options.json --include dist --node-modules-dir=false --output 'BetterStremio x86_64-linux-gnu' --target x86_64-unknown-linux-gnu --allow-env --allow-net --allow-read --allow-write --allow-run --allow-ffi main.ts",
+    "compile-linux-aarch64": "deno compile --config compile.options.json --include dist --node-modules-dir=false --output 'BetterStremio aarch64-linux-gnu' --target aarch64-unknown-linux-gnu --allow-env --allow-net --allow-read --allow-write --allow-run --allow-ffi main.ts",
+    "compile-macos-x86_64": "deno compile --config compile.options.json --include dist --node-modules-dir=false --output 'BetterStremio x86_64-apple-darwin' --target x86_64-apple-darwin --allow-env --allow-net --allow-read --allow-write --allow-run --allow-ffi main.ts",
+    "compile-macos-aarch64": "deno compile --config compile.options.json --include dist --node-modules-dir=false --output 'BetterStremio aarch64-apple-darwin' --target aarch64-apple-darwin --allow-env --allow-net --allow-read --allow-write --allow-run --allow-ffi main.ts"
   },
   "nodeModulesDir": "auto",
   "compilerOptions": {
@@ -25,6 +26,7 @@
     "@radix-ui/react-tooltip": "npm:@radix-ui/react-tooltip@^1.1.6",
     "@types/react": "npm:@types/react@^18.3.12",
     "@types/react-dom": "npm:@types/react-dom@^18.3.1",
+    "@types/webui": "https://deno.land/x/webui@2.5.0/src/types.ts",
     "@vitejs/plugin-react-swc": "npm:@vitejs/plugin-react-swc@^3.7.1",
     "autoprefixer": "npm:autoprefixer@^10.4.20",
     "class-variance-authority": "npm:class-variance-authority@^0.7.1",

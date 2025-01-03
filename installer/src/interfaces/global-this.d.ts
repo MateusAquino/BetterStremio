@@ -15,4 +15,5 @@ declare global {
     setEventCallback: (callback: (event: string) => void) => void;
   };
   var asyncResult: (result: { result: true | string; type: string }) => void;
+  var setStatus: (status: string) => void;
 }

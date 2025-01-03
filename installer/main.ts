@@ -2,7 +2,6 @@
 
 import { WebUI } from "webui";
 import path from "node:path";
-import si from "systeminformation";
 import * as BetterStremio from "./src/lib/BetterStremio.ts";
 
 if (Deno.build.os === "windows") {
@@ -28,27 +27,13 @@ function copyDirSync(src: string, dest: string) {
 }
 
 const installer = new WebUI();
-const tempDirPath = Deno.makeTempDirSync();
+const tempDirPath = Deno.realPathSync(Deno.makeTempDirSync());
 const sizeX = 1202;
 const sizeY = 743;
 
 copyDirSync(path.join(import.meta.dirname!, "dist"), tempDirPath);
 installer.setRootFolder(tempDirPath);
 installer.setSize(sizeX, sizeY);
-
-try {
-  const { displays } = await si.graphics();
-  if (!displays.length) throw new Error("No displays");
-
-  const width = displays[0].currentResX!;
-  const height = displays[0].currentResY!;
-  installer.setPosition(
-    Math.round(width / 2 - sizeX / 2),
-    Math.round(height / 2 - sizeY / 2),
-  );
-} catch (_e) {
-  // Fallback to default position
-}
 
 installer.bind("getPath", () => BetterStremio.getDefaultPath());
 
@@ -73,9 +58,10 @@ installer.bind("install", (event) => {
   const stremioPath = event.arg.string(0);
   const installWp = event.arg.boolean(1);
   const installAmoled = event.arg.boolean(2);
+  event.window.run("setStatus('Stopping Stremio instance...')");
   BetterStremio.killStremio();
 
-  BetterStremio.install(stremioPath, installWp, installAmoled).then(
+  BetterStremio.install(event, stremioPath, installWp, installAmoled).then(
     (result) => {
       event.window.run(
         "asyncResult({ result: " +
@@ -93,9 +79,10 @@ installer.bind("install", (event) => {
 
 installer.bind("uninstall", (event) => {
   const stremioPath = event.arg.string(0);
+  event.window.run("setStatus('Stopping Stremio instance...')");
   BetterStremio.killStremio();
 
-  BetterStremio.uninstall(stremioPath).then((result) => {
+  BetterStremio.uninstall(event, stremioPath).then((result) => {
     event.window.run(
       "asyncResult({ result: " +
         JSON.stringify(result) +

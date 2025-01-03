@@ -53,6 +53,7 @@ export default function InstallerUI() {
     if (connected) {
       (async () => {
         setPath(await globalThis.getPath());
+        globalThis.setStatus = (status) => setStatus(status);
         globalThis.asyncResult = (result) => {
           setStatus(null);
           setInstalling(false);
@@ -145,13 +146,13 @@ export default function InstallerUI() {
 
   const handleInstall = () => {
     setInstalling(true);
-    setStatus("Patching Stremio...");
+    setStatus("Starting installation...");
     globalThis.install(path, extraWatchParty, extraAmoled);
   };
 
   const handleUninstall = () => {
     setInstalling(true);
-    setStatus("Unpatching Stremio...");
+    setStatus("Starting uninstallation...");
     globalThis.uninstall(path);
   };
 
@@ -175,7 +176,7 @@ export default function InstallerUI() {
                   <div className="relative">
                     <div className="flex items-center space-x-4">
                       <img
-                        src="/android-chrome-192x192.png"
+                        src="https://github.com/MateusAquino/BetterStremio/raw/main/installer/public/original.png"
                         width={90}
                         height={90}
                         alt="BetterStremio Logo"

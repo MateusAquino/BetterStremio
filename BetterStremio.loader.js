@@ -5,7 +5,7 @@
  */
 
 (function boot() {
-  BetterStremio.version = "1.0.2";
+  BetterStremio.version = "1.0.3";
   BetterStremio.errors = [];
 
   BetterStremio.Data = {
@@ -47,7 +47,7 @@
         BetterStremio.errors.push(["onDisable", e]);
       }
     },
-    reload: () => {
+    reload: async () => {
       BetterStremio.Internal.enabledPlugins.forEach((plugin) => {
         try {
           BetterStremio.Internal.plugins[plugin]?.onDisable?.();
@@ -71,6 +71,8 @@
           BetterStremio.errors.push(["onEnable", e]);
         }
       });
+      await checkPluginUpdates();
+      BetterStremio.Internal.reloadUI();
     },
   };
 
@@ -109,7 +111,7 @@
         BetterStremio.Data.store("disabled-themes", theme, "1");
       }
     },
-    reload: () => {
+    reload: async () => {
       BetterStremio.Internal.enabledThemes.forEach((theme) =>
         BetterStremio.Themes.disable(theme, false)
       );
@@ -117,6 +119,8 @@
       BetterStremio.Internal.enabledThemes.forEach((theme) =>
         BetterStremio.Themes.enable(theme, false)
       );
+      await checkThemeUpdates();
+      BetterStremio.Internal.reloadUI();
     },
   };
 
@@ -126,7 +130,9 @@
       getDescription: () => (/@description (.*?)$/m.exec(content) || [])[1],
       getImage: () => (/@image (.*?)$/m.exec(content) || [])[1],
       getUpdateURL: () => (/@updateUrl (.*?)$/m.exec(content) || [])[1],
-      getShareURL: () => (/@shareUrl (.*?)$/m.exec(content) || [])[1],
+      getShareURL: () =>
+        (/@shareUrl (.*?)$/m.exec(content) || [])[1] ||
+        (/@updateUrl (.*?)$/m.exec(content) || [])[1],
       getVersion: () => (/@version (.*?)$/m.exec(content) || [])[1],
       getAuthor: () => (/@author (.*?)$/m.exec(content) || [])[1],
       content,
@@ -172,17 +178,20 @@
 
       for (const [pluginName, pluginSource] of plugins) {
         try {
-          let module = { exports: {} };
-          let exports = module.exports;
-          const PluginModule = eval(pluginSource);
-
+          const PluginModule = new Function(
+            `let module = { exports: {} };let exports = module.exports; return ${pluginSource}\n//# sourceURL=${BetterStremio.host}/src/plugins/${pluginName}`,
+          )();
           compiledPlugins.push([pluginName, new PluginModule()]);
         } catch (e) {
-          console.error(
-            `[BetterStremio] Plugin '${plugin}' threw an exception at onImport:`,
-            e,
+          var err = e.constructor(
+            `[BetterStremio] Plugin '${pluginName}' failed to compile: ${e.message}`,
           );
+          console.error(err);
           BetterStremio.errors.push(["onImport", e]);
+          const PluginModule = new Function(
+            `let module = { exports: class InvalidPlugin { getName = () => "${pluginName}"; getDescription = () => "This plugin failed to compile. Please check the console and/or BetterStremio plugin template for more information." } };let exports = module.exports; return module.exports;\n//# sourceURL=${BetterStremio.host}/src/plugins/${pluginName}`,
+          )();
+          compiledPlugins.push([pluginName, new PluginModule()]);
         }
       }
 
@@ -192,6 +201,7 @@
       BetterStremio.Internal.themes = Object.fromEntries(themes);
       return BetterStremio.Internal;
     },
+    reloadUI: () => BetterStremio.Scopes.betterStremioCtrl.$state.reload(),
   };
 
   const info = BetterStremio.Internal.reloadInfo();
@@ -222,8 +232,8 @@
 			  <a ng-hide="!enabled(name)" ng-click="disable(name)" class="install">Enabled</a>
 			  <a ng-hide="enabled(name)" ng-click="enable(name)" class="remove">Disabled</a>
 		  </div>
-		  <div ng-hide="!plugin.getShareURL" ng-click="share(name)" class="share"><svg icon="share" class="icon" viewBox="0 0 512 512"><path d="M396 459.9000000000001a68.732 68.732 0 0 1-69.2-67.7v-1.5l-138.3-45.6a78.017 78.017 0 0 1-27.51 21.83 78.18 78.18 0 0 1-34.29 7.57c-20.25 0.8-39.99-6.47-54.89-20.22a76.497 76.497 0 0 1-4.45-108.01 76.464 76.464 0 0 1 53.04-24.67c2.1-0.1 4.2-0.1 6.3 0 17.47 0.17 34.44 5.84 48.5 16.2l101.7-66.2c-6.3-12.85-9.81-26.89-10.3-41.2-0.9-19.1 3.94-38.03 13.9-54.36a95.752 95.752 0 0 1 41.98-37.23 95.712 95.712 0 0 1 55.62-7.3 95.675 95.675 0 0 1 50.17 25.13 95.68 95.68 0 0 1 27.46 48.92 95.708 95.708 0 0 1-4.68 55.91 95.622 95.622 0 0 1-35.21 43.69 95.744 95.744 0 0 1-53.64 16.44c-12.24 0.2-24.4-2.04-35.77-6.59a92.241 92.241 0 0 1-30.43-19.91l-100 64.7a77.105 77.105 0 0 1 8.8 35.2 94.128 94.128 0 0 1-2.9 19.1l132.3 42.6a70.112 70.112 0 0 1 33.27-29.66 70.06 70.06 0 0 1 44.42-3.6 70.09 70.09 0 0 1 37.62 23.91 70.124 70.124 0 0 1 15.59 41.75 71.267 71.267 0 0 1-20.28 49.33 71.293 71.293 0 0 1-48.82 21.47Zm0-104.4c-6.91 0.3-13.57 2.62-19.17 6.68-5.6 4.05-9.88 9.67-12.32 16.14a35.341 35.341 0 0 0-1.38 20.25 35.271 35.271 0 0 0 63.85 11.58 35.212 35.212 0 0 0 5.82-19.45 36.1 36.1 0 0 0-11.14-25.19 36.103 36.103 0 0 0-25.66-10.01Zm-270.6-102.9a45.61 45.61 0 0 0-17.53 3.05 45.73 45.73 0 0 0-15.04 9.53 45.821 45.821 0 0 0-10.24 14.55 45.61 45.61 0 0 0-0.84 34.9 45.73 45.73 0 0 0 9.53 15.04c4.13 4.33 9.08 7.81 14.55 10.24a45.644 45.644 0 0 0 17.37 3.89h2.2c5.99 0.14 11.95-0.89 17.53-3.05a45.73 45.73 0 0 0 15.04-9.53c4.33-4.13 7.81-9.08 10.24-14.55a45.644 45.644 0 0 0 3.89-17.37c0.15-5.99-0.89-11.95-3.05-17.53a45.73 45.73 0 0 0-9.53-15.04 45.821 45.821 0 0 0-14.55-10.24 45.644 45.644 0 0 0-17.37-3.89h-2.2Zm236.8-180.9a61.296 61.296 0 0 0-23.57 3.89 61.023 61.023 0 0 0-20.29 12.62 61.108 61.108 0 0 0-13.92 19.42 61.166 61.166 0 0 0-5.42 23.27v1.1a61.285 61.285 0 0 0 18.62 43.02 61.309 61.309 0 0 0 43.58 17.28h1.1c8.16 0.39 16.32-0.89 23.98-3.75a60.44 60.44 0 0 0 20.56-12.88 60.422 60.422 0 0 0 13.83-19.95c3.21-7.51 4.86-15.6 4.86-23.77a60.49 60.49 0 0 0-4.9-23.77 60.334 60.334 0 0 0-34.45-32.77 60.305 60.305 0 0 0-23.98-3.71Z" style="fill:currentcolor"></path></svg>Share {{type === "plugins" ? "Plugin" : "Theme"}}</div>
-		  <div ng-hide="true" ng-click="update(name)" class="share"><svg viewBox="0 0 256 256" class="icon"><g fill="#ffffff" fill-rule="nonzero" stroke="none" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10"><g transform="scale(8,8)"><path d="M16,4c-6.61719,0 -12,5.38281 -12,12h2c0,-5.51562 4.48438,-10 10,-10c3.69531,0 6.92578,2.01172 8.65625,5h-3.65625v2h7v-7h-2v3.40625c-2.14453,-3.25391 -5.82031,-5.40625 -10,-5.40625zM26,16c0,5.51563 -4.48437,10 -10,10c-3.69531,0 -6.92578,-2.01172 -8.65625,-5h3.65625v-2h-7v7h2v-3.40625c2.14453,3.25391 5.82031,5.40625 10,5.40625c6.61719,0 12,-5.38281 12,-12z"></path></g></g></svg>Update Available</div>
+		  <div ng-hide="!plugin.getShareURL()" ng-click="share(name)" class="share"><svg icon="share" class="icon" viewBox="0 0 512 512"><path d="M396 459.9000000000001a68.732 68.732 0 0 1-69.2-67.7v-1.5l-138.3-45.6a78.017 78.017 0 0 1-27.51 21.83 78.18 78.18 0 0 1-34.29 7.57c-20.25 0.8-39.99-6.47-54.89-20.22a76.497 76.497 0 0 1-4.45-108.01 76.464 76.464 0 0 1 53.04-24.67c2.1-0.1 4.2-0.1 6.3 0 17.47 0.17 34.44 5.84 48.5 16.2l101.7-66.2c-6.3-12.85-9.81-26.89-10.3-41.2-0.9-19.1 3.94-38.03 13.9-54.36a95.752 95.752 0 0 1 41.98-37.23 95.712 95.712 0 0 1 55.62-7.3 95.675 95.675 0 0 1 50.17 25.13 95.68 95.68 0 0 1 27.46 48.92 95.708 95.708 0 0 1-4.68 55.91 95.622 95.622 0 0 1-35.21 43.69 95.744 95.744 0 0 1-53.64 16.44c-12.24 0.2-24.4-2.04-35.77-6.59a92.241 92.241 0 0 1-30.43-19.91l-100 64.7a77.105 77.105 0 0 1 8.8 35.2 94.128 94.128 0 0 1-2.9 19.1l132.3 42.6a70.112 70.112 0 0 1 33.27-29.66 70.06 70.06 0 0 1 44.42-3.6 70.09 70.09 0 0 1 37.62 23.91 70.124 70.124 0 0 1 15.59 41.75 71.267 71.267 0 0 1-20.28 49.33 71.293 71.293 0 0 1-48.82 21.47Zm0-104.4c-6.91 0.3-13.57 2.62-19.17 6.68-5.6 4.05-9.88 9.67-12.32 16.14a35.341 35.341 0 0 0-1.38 20.25 35.271 35.271 0 0 0 63.85 11.58 35.212 35.212 0 0 0 5.82-19.45 36.1 36.1 0 0 0-11.14-25.19 36.103 36.103 0 0 0-25.66-10.01Zm-270.6-102.9a45.61 45.61 0 0 0-17.53 3.05 45.73 45.73 0 0 0-15.04 9.53 45.821 45.821 0 0 0-10.24 14.55 45.61 45.61 0 0 0-0.84 34.9 45.73 45.73 0 0 0 9.53 15.04c4.13 4.33 9.08 7.81 14.55 10.24a45.644 45.644 0 0 0 17.37 3.89h2.2c5.99 0.14 11.95-0.89 17.53-3.05a45.73 45.73 0 0 0 15.04-9.53c4.33-4.13 7.81-9.08 10.24-14.55a45.644 45.644 0 0 0 3.89-17.37c0.15-5.99-0.89-11.95-3.05-17.53a45.73 45.73 0 0 0-9.53-15.04 45.821 45.821 0 0 0-14.55-10.24 45.644 45.644 0 0 0-17.37-3.89h-2.2Zm236.8-180.9a61.296 61.296 0 0 0-23.57 3.89 61.023 61.023 0 0 0-20.29 12.62 61.108 61.108 0 0 0-13.92 19.42 61.166 61.166 0 0 0-5.42 23.27v1.1a61.285 61.285 0 0 0 18.62 43.02 61.309 61.309 0 0 0 43.58 17.28h1.1c8.16 0.39 16.32-0.89 23.98-3.75a60.44 60.44 0 0 0 20.56-12.88 60.422 60.422 0 0 0 13.83-19.95c3.21-7.51 4.86-15.6 4.86-23.77a60.49 60.49 0 0 0-4.9-23.77 60.334 60.334 0 0 0-34.45-32.77 60.305 60.305 0 0 0-23.98-3.71Z" style="fill:currentcolor"></path></svg>Share {{type === "plugins" ? "Plugin" : "Theme"}}</div>
+		  <div ng-hide="!plugin.bsUpdateAvailable" ng-click="update(name)" class="share bs-update"><svg viewBox="0 0 256 256" class="icon"><g fill="#ffffff"><g transform="scale(8,8)"><path d="M16,4c-6.61719,0 -12,5.38281 -12,12h2c0,-5.51562 4.48438,-10 10,-10c3.69531,0 6.92578,2.01172 8.65625,5h-3.65625v2h7v-7h-2v3.40625c-2.14453,-3.25391 -5.82031,-5.40625 -10,-5.40625zM26,16c0,5.51563 -4.48437,10 -10,10c-3.69531,0 -6.92578,-2.01172 -8.65625,-5h3.65625v-2h-7v7h2v-3.40625c2.14453,3.25391 5.82031,5.40625 10,5.40625c6.61719,0 12,-5.38281 12,-12z"></path></g></g></svg>Update Available</div>
 		  </div></div></div>`;
   }
 
@@ -236,7 +246,8 @@
     betterStremioTpl.id = "betterStremioTpl";
     betterStremioTpl.type = "text/ng-template";
     betterStremioTpl.innerHTML =
-      `<div ng-controller="betterStremioCtrl" ng-cloak><div id="addonsCatalog"><div id="addons"><div id="betterstremio-filters" spatial-nav-section="{ id: 'betterstremio-filters', enterTo: 'last-focused'}" spatial-nav-section-active="$state.includes('betterstremio') &amp;&amp; ! prompt" class="options"><div class="filters"><ul class="segments"><li ng-repeat="type in ['plugins', 'themes']" ui-sref="betterstremio({ type: type })" ui-sref-opts="{location: 'replace'}" ng-class="{ selected: type == getSelectedType() }" tabindex="-1"><span ng-if="type == 'plugins'" translate="Plugins" class="label"> </span><span ng-if="type == 'themes'" translate="Themes" class="label"></span></li></ul></div><div class="filters"><span id="betterstremio-version" style="margin-top: 0.5rem;margin-right: 10px;align-items: center;display: flex;color: gray;font-size: 10px;flex-wrap: nowrap;flex-direction: column;">BetterStremio v${BetterStremio.version}<span ng-click="openChangelog()" tabindex="-1" style="cursor: pointer; color: palegoldenrod;">(changelog)</span></span><ul class="segments"><li ng-click="reloadAll()" tabindex="-1"><span class="label">Reload</span></li><li ng-click="openFolder()" tabindex="-1"><span class="label">Open folder</span></li></ul></div></div><div ng-repeat="type in ['plugins', 'themes']" ng-hide="type != getSelectedType()" class="content">${itemButton()}</div></div></div></div>`;
+      `<div ng-controller="betterStremioCtrl" ng-cloak><div id="addonsCatalog"><div id="addons"><div id="betterstremio-filters" spatial-nav-section="{ id: 'betterstremio-filters', enterTo: 'last-focused'}" spatial-nav-section-active="$state.includes('betterstremio') &amp;&amp; ! prompt" class="options"><div class="filters"><ul class="segments"><li ng-repeat="type in ['plugins', 'themes']" ui-sref="betterstremio({ type: type })" ui-sref-opts="{location: 'replace'}" ng-class="{ selected: type == getSelectedType() }" tabindex="-1"><span ng-if="type == 'plugins'" translate="Plugins" class="label"> </span><span ng-if="type == 'themes'" translate="Themes" class="label"></span></li></ul></div><div class="filters"><span id="betterstremio-version" style="margin-top: 0.5rem;margin-right: 10px;align-items: center;display: flex;color: gray;font-size: 10px;flex-wrap: nowrap;flex-direction: column;">BetterStremio v${BetterStremio.version}<span ng-click="openChangelog()" tabindex="-1" style="cursor: pointer; color: palegoldenrod;">(changelog)</span></span><ul class="segments"><li ng-click="reloadAll()" tabindex="-1"><span class="label">Reload</span></li><li ng-click="openFolder()" tabindex="-1"><span class="label">Open folder</span></li></ul></div></div><div ng-repeat="type in ['plugins', 'themes']" ng-hide="type != getSelectedType()" class="content">${itemButton()}</div></div></div></div>
+    <style type="text/css">@keyframes shine { 0% { left: -100%; } 50% { left: 50%; } 100% { left: 200%; } } .bs-update { position: relative; overflow: hidden; background: cornflowerblue; border-radius: 3rem; } .bs-update::after { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient( 120deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.4) 50%, rgba(255, 255, 255, 0) 100% ); transform: skewX(-45deg); transition: none; pointer-events: none; } .bs-update::after { animation: shine 2s linear infinite; }</style>`;
 
     const addonsTpl = document.getElementById("addonsTpl");
     addonsTpl.parentElement.insertBefore(betterStremioTpl, addonsTpl);
@@ -309,11 +320,34 @@
         s.openFolder = () => BetterStremio.Internal.fetch("/folder", false);
         s.openChangelog = () =>
           BetterStremio.Internal.fetch("/changelog", false);
-        s.update = (name) =>
-          window.open(entries()[name].getUpdateURL(), "_blank").focus();
+        s.update = async (name) => {
+          const isEnabled = enabledValues().includes(name);
+          if (isEnabled) context().disable(name);
+          const updateURL = entries()[name].getUpdateURL();
+          if (!updateURL) return;
+          await BetterStremio.Internal.update(
+            `${m.params.type}/${name}`,
+            updateURL,
+          );
+          BetterStremio.Internal.reloadInfo();
+          if (isEnabled) context().enable(name);
+          await checkPluginUpdates();
+          await checkThemeUpdates();
+          BetterStremio.Internal.reloadUI();
+          BetterStremio.Toasts.info(
+            `Updated ${m.params.type === "plugins" ? "Plugin" : "Theme"} "${
+              entries()[name].getName()
+            }" to v${
+              entries()[
+                name
+              ].getVersion()
+            }`,
+          );
+        };
         s.share = (name) => {
           d.sendShare({
-            url: entries()[name].getShareURL(),
+            url: entries()[name].getShareURL() ||
+              entries()[name].getUpdateURL(),
             name: entries()[name].getName(),
             type: "copylink",
           });
@@ -365,7 +399,7 @@
     });
   });
 
-  function checkForUpdates() {
+  async function checkForUpdates() {
     const updateURL =
       "https://raw.githubusercontent.com/MateusAquino/BetterStremio/main/BetterStremio.loader.js";
     fetch(updateURL, { body: null, method: "GET" })
@@ -373,7 +407,10 @@
         const loader = await res.text();
         const match = /BetterStremio\.version\s*=\s*"(.*?)"/gm.exec(loader);
         if (match && match[1] && match[1] !== BetterStremio.version) {
-          BetterStremio.Internal.update("BetterStremio.loader.js", updateURL);
+          await BetterStremio.Internal.update(
+            "BetterStremio.loader.js",
+            updateURL,
+          );
           BetterStremio.Toasts.info(
             `BetterStremio update available!", "Close Stremio from system tray and reopen to upgrade to v${
               match[1]
@@ -391,6 +428,85 @@
       .catch((e) => {
         console.error("[BetterStremio] Failed to check for updates", e);
       });
+
+    await checkPluginUpdates();
+    await checkThemeUpdates();
+    BetterStremio.Internal.reloadUI();
+  }
+
+  async function checkPluginUpdates() {
+    for (
+      const [pluginName, plugin] of Object.entries(
+        BetterStremio.Internal.plugins,
+      )
+    ) {
+      try {
+        const updateURL = plugin.getUpdateURL();
+        if (!updateURL) continue;
+        const res = await fetch(updateURL, { body: null, method: "GET" });
+        const pluginSource = await res.text();
+        if (!pluginSource) continue;
+
+        const PluginModule = new Function(
+          `return (function() {
+            "use strict";
+            return function() {
+                  const window = undefined;
+                  const document = undefined;
+                  let module = { exports: {} };
+                  let exports = module.exports;
+                  return (function() {
+                    return ${pluginSource}\n//# sourceURL=${updateURL}
+                  }).call(this);
+              };
+            })`,
+        )();
+        const newPlugin = new (PluginModule()())();
+        if (newPlugin.getVersion() !== plugin.getVersion()) {
+          console.log(
+            'Update for plugin "' + pluginName + '" available:',
+            plugin.getVersion(),
+            "~>",
+            newPlugin.getVersion(),
+          );
+          plugin.bsUpdateAvailable = true;
+        }
+      } catch (e) {
+        console.error(
+          `[BetterStremio] Plugin '${pluginName}' threw an exception at update check:`,
+          e,
+        );
+        BetterStremio.errors.push(["updateCheck", e]);
+      }
+    }
+  }
+
+  async function checkThemeUpdates() {
+    for (const theme of Object.values(BetterStremio.Internal.themes)) {
+      try {
+        const updateURL = theme.getUpdateURL();
+        if (!updateURL) continue;
+        const res = await fetch(updateURL, { body: null, method: "GET" });
+        const loader = await res.text();
+        if (!loader) continue;
+        const newTheme = parseTheme(loader);
+        if (newTheme.getVersion() !== theme.getVersion()) {
+          console.log(
+            'Update for theme "' + theme.name + '" available:',
+            theme.getVersion(),
+            "~>",
+            newTheme.getVersion(),
+          );
+          theme.bsUpdateAvailable = true;
+        }
+      } catch (e) {
+        console.error(
+          `[BetterStremio] Theme '${theme.name}' threw an exception at update check:`,
+          e,
+        );
+        BetterStremio.errors.push(["updateCheck", e]);
+      }
+    }
   }
 
   window.onload = () => {
@@ -401,9 +517,9 @@
     );
     const filledIcon = document.querySelector('[icon="betterstremio"]');
     outlineIcon.innerHTML =
-      `<g fill="currentColor" fill-rule="nonzero" stroke="none" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10" stroke-dasharray="" stroke-dashoffset="0" font-family="none" font-weight="none" font-size="none" text-anchor="none" style="mix-blend-mode: normal"><g transform="scale(5.12,5.12)"><path d="M14,3c-1.64497,0 -3,1.35503 -3,3v15.02539c-4.44462,0.26245 -8,3.96685 -8,8.47461c-0.00765,0.54095 0.27656,1.04412 0.74381,1.31683c0.46725,0.27271 1.04514,0.27271 1.51238,0c0.46725,-0.27271 0.75146,-0.77588 0.74381,-1.31683c0,-2.8862 2.18298,-5.22619 5,-5.47656v12.97656c0,1.64497 1.35503,3 3,3h4v5.5c-0.00765,0.54095 0.27656,1.04412 0.74381,1.31683c0.46725,0.27271 1.04514,0.27271 1.51238,0c0.46725,-0.27271 0.75146,-0.77588 0.74381,-1.31683v-5.5h8v5.5c-0.00765,0.54095 0.27656,1.04412 0.74381,1.31683c0.46725,0.27271 1.04514,0.27271 1.51238,0c0.46725,-0.27271 0.75146,-0.77588 0.74381,-1.31683v-5.5h4c1.64497,0 3,-1.35503 3,-3v-13.02539c4.44461,-0.26245 8,-3.96685 8,-8.47461c0.00582,-0.40562 -0.15288,-0.7963 -0.43991,-1.08296c-0.28703,-0.28666 -0.67792,-0.44486 -1.08353,-0.43852c-0.82766,0.01293 -1.48843,0.69381 -1.47656,1.52148c0,2.8862 -2.18298,5.22619 -5,5.47656v-14.97656c0,-1.64497 -1.35503,-3 -3,-3zM14,5h22c0.56503,0 1,0.43497 1,1v16.25391c-0.02645,0.16103 -0.02645,0.3253 0,0.48633v14.25977c0,0.56503 -0.43497,1 -1,1h-22c-0.56503,0 -1,-0.43497 -1,-1v-14.25391c0.02645,-0.16103 0.02645,-0.3253 0,-0.48633v-16.25977c0,-0.56503 0.43497,-1 1,-1zM17,7c-1.09306,0 -2,0.90694 -2,2v9c0,1.09306 0.90694,2 2,2h16c1.09306,0 2,-0.90694 2,-2v-9c0,-1.09306 -0.90694,-2 -2,-2zM17,9h16v9h-16zM20,11c-0.55228,0 -1,0.44772 -1,1c0,0.55228 0.44772,1 1,1c0.55228,0 1,-0.44772 1,-1c0,-0.55228 -0.44772,-1 -1,-1zM30,11c-0.55228,0 -1,0.44772 -1,1c0,0.55228 0.44772,1 1,1c0.55228,0 1,-0.44772 1,-1c0,-0.55228 -0.44772,-1 -1,-1zM23,14c0,1.105 0.895,2 2,2c1.105,0 2,-0.895 2,-2zM15,22v2h12v-2zM32,22c-0.55228,0 -1,0.44772 -1,1c0,0.55228 0.44772,1 1,1c0.55228,0 1,-0.44772 1,-1c0,-0.55228 -0.44772,-1 -1,-1zM17,26v2h-2v2h2v2h2v-2h2v-2h-2v-2zM29,26l-2,3h4zM34,27c-0.552,0 -1,0.448 -1,1c0,0.552 0.448,1 1,1c0.552,0 1,-0.448 1,-1c0,-0.552 -0.448,-1 -1,-1zM31.5,31c-1.381,0 -2.5,1.119 -2.5,2.5c0,1.381 1.119,2.5 2.5,2.5c1.381,0 2.5,-1.119 2.5,-2.5c0,-1.381 -1.119,-2.5 -2.5,-2.5zM16,34c-0.36064,-0.0051 -0.69608,0.18438 -0.87789,0.49587c-0.18181,0.3115 -0.18181,0.69676 0,1.00825c0.18181,0.3115 0.51725,0.50097 0.87789,0.49587h2c0.36064,0.0051 0.69608,-0.18438 0.87789,-0.49587c0.18181,-0.3115 0.18181,-0.69676 0,-1.00825c-0.18181,-0.3115 -0.51725,-0.50097 -0.87789,-0.49587zM22,34c-0.36064,-0.0051 -0.69608,0.18438 -0.87789,0.49587c-0.18181,0.3115 -0.18181,0.69676 0,1.00825c0.18181,0.3115 0.51725,0.50097 0.87789,0.49587h2c0.36064,0.0051 0.69608,-0.18438 0.87789,-0.49587c0.18181,-0.3115 0.18181,-0.69676 0,-1.00825c-0.18181,-0.3115 -0.51725,-0.50097 -0.87789,-0.49587z"></path></g></g>`;
+      `<g fill="currentColor"><g transform="scale(5.12,5.12)"><path d="M14,3c-1.64497,0 -3,1.35503 -3,3v15.02539c-4.44462,0.26245 -8,3.96685 -8,8.47461c-0.00765,0.54095 0.27656,1.04412 0.74381,1.31683c0.46725,0.27271 1.04514,0.27271 1.51238,0c0.46725,-0.27271 0.75146,-0.77588 0.74381,-1.31683c0,-2.8862 2.18298,-5.22619 5,-5.47656v12.97656c0,1.64497 1.35503,3 3,3h4v5.5c-0.00765,0.54095 0.27656,1.04412 0.74381,1.31683c0.46725,0.27271 1.04514,0.27271 1.51238,0c0.46725,-0.27271 0.75146,-0.77588 0.74381,-1.31683v-5.5h8v5.5c-0.00765,0.54095 0.27656,1.04412 0.74381,1.31683c0.46725,0.27271 1.04514,0.27271 1.51238,0c0.46725,-0.27271 0.75146,-0.77588 0.74381,-1.31683v-5.5h4c1.64497,0 3,-1.35503 3,-3v-13.02539c4.44461,-0.26245 8,-3.96685 8,-8.47461c0.00582,-0.40562 -0.15288,-0.7963 -0.43991,-1.08296c-0.28703,-0.28666 -0.67792,-0.44486 -1.08353,-0.43852c-0.82766,0.01293 -1.48843,0.69381 -1.47656,1.52148c0,2.8862 -2.18298,5.22619 -5,5.47656v-14.97656c0,-1.64497 -1.35503,-3 -3,-3zM14,5h22c0.56503,0 1,0.43497 1,1v16.25391c-0.02645,0.16103 -0.02645,0.3253 0,0.48633v14.25977c0,0.56503 -0.43497,1 -1,1h-22c-0.56503,0 -1,-0.43497 -1,-1v-14.25391c0.02645,-0.16103 0.02645,-0.3253 0,-0.48633v-16.25977c0,-0.56503 0.43497,-1 1,-1zM17,7c-1.09306,0 -2,0.90694 -2,2v9c0,1.09306 0.90694,2 2,2h16c1.09306,0 2,-0.90694 2,-2v-9c0,-1.09306 -0.90694,-2 -2,-2zM17,9h16v9h-16zM20,11c-0.55228,0 -1,0.44772 -1,1c0,0.55228 0.44772,1 1,1c0.55228,0 1,-0.44772 1,-1c0,-0.55228 -0.44772,-1 -1,-1zM30,11c-0.55228,0 -1,0.44772 -1,1c0,0.55228 0.44772,1 1,1c0.55228,0 1,-0.44772 1,-1c0,-0.55228 -0.44772,-1 -1,-1zM23,14c0,1.105 0.895,2 2,2c1.105,0 2,-0.895 2,-2zM15,22v2h12v-2zM32,22c-0.55228,0 -1,0.44772 -1,1c0,0.55228 0.44772,1 1,1c0.55228,0 1,-0.44772 1,-1c0,-0.55228 -0.44772,-1 -1,-1zM17,26v2h-2v2h2v2h2v-2h2v-2h-2v-2zM29,26l-2,3h4zM34,27c-0.552,0 -1,0.448 -1,1c0,0.552 0.448,1 1,1c0.552,0 1,-0.448 1,-1c0,-0.552 -0.448,-1 -1,-1zM31.5,31c-1.381,0 -2.5,1.119 -2.5,2.5c0,1.381 1.119,2.5 2.5,2.5c1.381,0 2.5,-1.119 2.5,-2.5c0,-1.381 -1.119,-2.5 -2.5,-2.5zM16,34c-0.36064,-0.0051 -0.69608,0.18438 -0.87789,0.49587c-0.18181,0.3115 -0.18181,0.69676 0,1.00825c0.18181,0.3115 0.51725,0.50097 0.87789,0.49587h2c0.36064,0.0051 0.69608,-0.18438 0.87789,-0.49587c0.18181,-0.3115 0.18181,-0.69676 0,-1.00825c-0.18181,-0.3115 -0.51725,-0.50097 -0.87789,-0.49587zM22,34c-0.36064,-0.0051 -0.69608,0.18438 -0.87789,0.49587c-0.18181,0.3115 -0.18181,0.69676 0,1.00825c0.18181,0.3115 0.51725,0.50097 0.87789,0.49587h2c0.36064,0.0051 0.69608,-0.18438 0.87789,-0.49587c0.18181,-0.3115 0.18181,-0.69676 0,-1.00825c-0.18181,-0.3115 -0.51725,-0.50097 -0.87789,-0.49587z"></path></g></g>`;
     filledIcon.innerHTML =
-      `<g fill="currentColor" fill-rule="nonzero" stroke="none" stroke-width="1" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10" stroke-dasharray="" stroke-dashoffset="0" font-family="none" font-weight="none" font-size="none" text-anchor="none" style="mix-blend-mode: normal"><g transform="scale(5.12,5.12)"><path d="M14,4c-1.105,0 -2,0.895 -2,2v15h-0.5c-4.67666,0 -8.5,3.82334 -8.5,8.5c-0.00765,0.54095 0.27656,1.04412 0.74381,1.31683c0.46725,0.27271 1.04514,0.27271 1.51238,0c0.46725,-0.27271 0.75146,-0.77588 0.74381,-1.31683c0,-3.05534 2.44466,-5.5 5.5,-5.5h0.5v13c0,1.105 0.895,2 2,2h4v6.5c-0.00765,0.54095 0.27656,1.04412 0.74381,1.31683c0.46725,0.27271 1.04514,0.27271 1.51238,0c0.46725,-0.27271 0.75146,-0.77588 0.74381,-1.31683v-6.5h8v6.5c-0.00765,0.54095 0.27656,1.04412 0.74381,1.31683c0.46725,0.27271 1.04514,0.27271 1.51238,0c0.46725,-0.27271 0.75146,-0.77588 0.74381,-1.31683v-6.5h4c1.105,0 2,-0.895 2,-2v-13h0.5c0.21371,0.00241 0.42547,-0.04088 0.62109,-0.12695c4.37381,-0.33661 7.87891,-3.91645 7.87891,-8.37305c0.00582,-0.40562 -0.15288,-0.7963 -0.43991,-1.08296c-0.28703,-0.28666 -0.67792,-0.44486 -1.08353,-0.43852c-0.82766,0.01293 -1.48843,0.69381 -1.47656,1.52148c0,3.05534 -2.44466,5.5 -5.5,5.5h-0.5v-15c0,-1.105 -0.895,-2 -2,-2zM17,8h16c0.552,0 1,0.448 1,1v9c0,0.552 -0.448,1 -1,1h-16c-0.552,0 -1,-0.448 -1,-1v-9c0,-0.552 0.448,-1 1,-1zM20,11c-0.55228,0 -1,0.44772 -1,1c0,0.55228 0.44772,1 1,1c0.55228,0 1,-0.44772 1,-1c0,-0.55228 -0.44772,-1 -1,-1zM30,11c-0.55228,0 -1,0.44772 -1,1c0,0.55228 0.44772,1 1,1c0.55228,0 1,-0.44772 1,-1c0,-0.55228 -0.44772,-1 -1,-1zM23,14c0,1.105 0.895,2 2,2c1.105,0 2,-0.895 2,-2zM16,22h11v2h-11zM32,22c0.552,0 1,0.448 1,1c0,0.552 -0.448,1 -1,1c-0.552,0 -1,-0.448 -1,-1c0,-0.552 0.448,-1 1,-1zM18,26h2v2h2v2h-2v2h-2v-2h-2v-2h2zM29,26l2,3h-4zM34,27c0.552,0 1,0.448 1,1c0,0.552 -0.448,1 -1,1c-0.552,0 -1,-0.448 -1,-1c0,-0.552 0.448,-1 1,-1zM31.5,31c1.381,0 2.5,1.119 2.5,2.5c0,1.381 -1.119,2.5 -2.5,2.5c-1.381,0 -2.5,-1.119 -2.5,-2.5c0,-1.381 1.119,-2.5 2.5,-2.5zM17,34h2c0.553,0 1,0.448 1,1c0,0.552 -0.447,1 -1,1h-2c-0.553,0 -1,-0.448 -1,-1c0,-0.552 0.447,-1 1,-1zM23,34h2c0.553,0 1,0.448 1,1c0,0.552 -0.447,1 -1,1h-2c-0.553,0 -1,-0.448 -1,-1c0,-0.552 0.447,-1 1,-1z"></path></g></g>`;
+      `<g fill="currentColor"><g transform="scale(5.12,5.12)"><path d="M14,4c-1.105,0 -2,0.895 -2,2v15h-0.5c-4.67666,0 -8.5,3.82334 -8.5,8.5c-0.00765,0.54095 0.27656,1.04412 0.74381,1.31683c0.46725,0.27271 1.04514,0.27271 1.51238,0c0.46725,-0.27271 0.75146,-0.77588 0.74381,-1.31683c0,-3.05534 2.44466,-5.5 5.5,-5.5h0.5v13c0,1.105 0.895,2 2,2h4v6.5c-0.00765,0.54095 0.27656,1.04412 0.74381,1.31683c0.46725,0.27271 1.04514,0.27271 1.51238,0c0.46725,-0.27271 0.75146,-0.77588 0.74381,-1.31683v-6.5h8v6.5c-0.00765,0.54095 0.27656,1.04412 0.74381,1.31683c0.46725,0.27271 1.04514,0.27271 1.51238,0c0.46725,-0.27271 0.75146,-0.77588 0.74381,-1.31683v-6.5h4c1.105,0 2,-0.895 2,-2v-13h0.5c0.21371,0.00241 0.42547,-0.04088 0.62109,-0.12695c4.37381,-0.33661 7.87891,-3.91645 7.87891,-8.37305c0.00582,-0.40562 -0.15288,-0.7963 -0.43991,-1.08296c-0.28703,-0.28666 -0.67792,-0.44486 -1.08353,-0.43852c-0.82766,0.01293 -1.48843,0.69381 -1.47656,1.52148c0,3.05534 -2.44466,5.5 -5.5,5.5h-0.5v-15c0,-1.105 -0.895,-2 -2,-2zM17,8h16c0.552,0 1,0.448 1,1v9c0,0.552 -0.448,1 -1,1h-16c-0.552,0 -1,-0.448 -1,-1v-9c0,-0.552 0.448,-1 1,-1zM20,11c-0.55228,0 -1,0.44772 -1,1c0,0.55228 0.44772,1 1,1c0.55228,0 1,-0.44772 1,-1c0,-0.55228 -0.44772,-1 -1,-1zM30,11c-0.55228,0 -1,0.44772 -1,1c0,0.55228 0.44772,1 1,1c0.55228,0 1,-0.44772 1,-1c0,-0.55228 -0.44772,-1 -1,-1zM23,14c0,1.105 0.895,2 2,2c1.105,0 2,-0.895 2,-2zM16,22h11v2h-11zM32,22c0.552,0 1,0.448 1,1c0,0.552 -0.448,1 -1,1c-0.552,0 -1,-0.448 -1,-1c0,-0.552 0.448,-1 1,-1zM18,26h2v2h2v2h-2v2h-2v-2h-2v-2h2zM29,26l2,3h-4zM34,27c0.552,0 1,0.448 1,1c0,0.552 -0.448,1 -1,1c-0.552,0 -1,-0.448 -1,-1c0,-0.552 0.448,-1 1,-1zM31.5,31c1.381,0 2.5,1.119 2.5,2.5c0,1.381 -1.119,2.5 -2.5,2.5c-1.381,0 -2.5,-1.119 -2.5,-2.5c0,-1.381 1.119,-2.5 2.5,-2.5zM17,34h2c0.553,0 1,0.448 1,1c0,0.552 -0.447,1 -1,1h-2c-0.553,0 -1,-0.448 -1,-1c0,-0.552 0.447,-1 1,-1zM23,34h2c0.553,0 1,0.448 1,1c0,0.552 -0.447,1 -1,1h-2c-0.553,0 -1,-0.448 -1,-1c0,-0.552 0.447,-1 1,-1z"></path></g></g>`;
     outlineIcon.setAttribute("viewBox", "0 0 256 256");
     filledIcon.setAttribute("viewBox", "0 0 256 256");
 
