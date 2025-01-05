@@ -5,7 +5,7 @@
  */
 
 (function boot() {
-  BetterStremio.version = "1.0.4";
+  BetterStremio.version = "1.0.5";
   BetterStremio.errors = [];
 
   BetterStremio.Data = {
@@ -142,7 +142,15 @@
   BetterStremio.Internal = {
     fetch: (route = "/", async = true) => {
       if (async) {
-        return fetch(BetterStremio.host + route, { body: null, method: "GET" });
+        const noCache = "v=" + Date.now();
+        const updateURL = BetterStremio.host + route;
+        const updateURLNoCache = updateURL.includes("?")
+          ? updateURL + "&" + noCache
+          : updateURL + "?" + noCache;
+        return fetch(updateURLNoCache, {
+          body: null,
+          method: "GET",
+        });
       }
 
       const request = new XMLHttpRequest();
@@ -152,8 +160,9 @@
     },
     update: (filename, sourceUrl) => {
       return fetch(
-        BetterStremio.host +
-          `/update/${filename}?from=${encodeURIComponent(sourceUrl)}`,
+        `${BetterStremio.host}/update/${filename}?from=${
+          encodeURIComponent(sourceUrl)
+        }`,
         { body: null, method: "POST" },
       );
     },
@@ -202,8 +211,8 @@
       return BetterStremio.Internal;
     },
     reloadUI: () => {
-      BetterStremio.Scopes.betterStremioCtrl.$state.reload();
-      document.querySelector("#bs-notification-count")?.remove();
+      BetterStremio.Scopes.betterStremioCtrl?.$state?.reload?.();
+      document.querySelector("#bs-notification-count")?.remove?.();
       const updateCount =
         Object.values(BetterStremio.Internal.plugins).filter((p) =>
           p.bsUpdateAvailable
@@ -214,7 +223,7 @@
       if (updateCount > 0) {
         document.querySelector('[ui-sref="betterstremio"]').insertAdjacentHTML(
           "beforeend",
-          `<div id="bs-notification-count" style="position: absolute; top: -5px; right: -3px; background-color: #dd2232; color: white; aspect-ratio: 1/1; border-radius: 50%; width: 20px; align-items: center; justify-content: center; font-weight: bold; line-height: 1; display: flex; font-size: 11px;">${
+          `<div id="bs-notification-count" style="position: absolute; top: -5px; right: -3px; background-color: #dd2232; color: white; height: 20px; border-radius: 50%; width: 20px; align-items: center; justify-content: center; font-weight: bold; line-height: 1; display: flex; font-size: 11px;">${
             updateCount > 9 ? "9+" : updateCount
           }</div>`,
         );
@@ -420,7 +429,16 @@
   async function checkForUpdates() {
     const updateURL =
       "https://raw.githubusercontent.com/MateusAquino/BetterStremio/main/BetterStremio.loader.js";
-    fetch(updateURL, { body: null, method: "GET" })
+
+    const noCache = "v=" + Date.now();
+    const updateURLNoCache = updateURL.includes("?")
+      ? updateURL + "&" + noCache
+      : updateURL + "?" + noCache;
+
+    fetch(updateURLNoCache, {
+      body: null,
+      method: "GET",
+    })
       .then(async (res) => {
         const loader = await res.text();
         const match = /BetterStremio\.version\s*=\s*"(.*?)"/gm.exec(loader);
@@ -430,7 +448,8 @@
             updateURL,
           );
           BetterStremio.Toasts.info(
-            `BetterStremio update available!", "Close Stremio from system tray and reopen to upgrade to v${
+            "BetterStremio update available!",
+            `Close Stremio from system tray and reopen to upgrade to v${
               match[1]
             }.`,
           );
@@ -461,7 +480,15 @@
       try {
         const updateURL = plugin.getUpdateURL();
         if (!updateURL) continue;
-        const res = await fetch(updateURL, { body: null, method: "GET" });
+        const noCache = "v=" + Date.now();
+        const updateURLNoCache = updateURL.includes("?")
+          ? updateURL + "&" + noCache
+          : updateURL + "?" + noCache;
+
+        const res = await fetch(updateURLNoCache, {
+          body: null,
+          method: "GET",
+        });
         const pluginSource = await res.text();
         if (!pluginSource) continue;
 
@@ -504,7 +531,14 @@
       try {
         const updateURL = theme.getUpdateURL();
         if (!updateURL) continue;
-        const res = await fetch(updateURL, { body: null, method: "GET" });
+        const noCache = "v=" + Date.now();
+        const updateURLNoCache = updateURL.includes("?")
+          ? updateURL + "&" + noCache
+          : updateURL + "?" + noCache;
+        const res = await fetch(updateURLNoCache, {
+          body: null,
+          method: "GET",
+        });
         const loader = await res.text();
         if (!loader) continue;
         const newTheme = parseTheme(loader);
