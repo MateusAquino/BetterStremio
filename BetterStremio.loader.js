@@ -5,7 +5,7 @@
  */
 
 (function boot() {
-  BetterStremio.version = "1.0.3";
+  BetterStremio.version = "1.0.4";
   BetterStremio.errors = [];
 
   BetterStremio.Data = {
@@ -201,7 +201,25 @@
       BetterStremio.Internal.themes = Object.fromEntries(themes);
       return BetterStremio.Internal;
     },
-    reloadUI: () => BetterStremio.Scopes.betterStremioCtrl.$state.reload(),
+    reloadUI: () => {
+      BetterStremio.Scopes.betterStremioCtrl.$state.reload();
+      document.querySelector("#bs-notification-count")?.remove();
+      const updateCount =
+        Object.values(BetterStremio.Internal.plugins).filter((p) =>
+          p.bsUpdateAvailable
+        ).length + Object.values(BetterStremio.Internal.themes).filter((t) =>
+          t.bsUpdateAvailable
+        ).length;
+
+      if (updateCount > 0) {
+        document.querySelector('[ui-sref="betterstremio"]').insertAdjacentHTML(
+          "beforeend",
+          `<div id="bs-notification-count" style="position: absolute; top: -5px; right: -3px; background-color: #dd2232; color: white; aspect-ratio: 1/1; border-radius: 50%; width: 20px; align-items: center; justify-content: center; font-weight: bold; line-height: 1; display: flex; font-size: 11px;">${
+            updateCount > 9 ? "9+" : updateCount
+          }</div>`,
+        );
+      }
+    },
   };
 
   const info = BetterStremio.Internal.reloadInfo();
