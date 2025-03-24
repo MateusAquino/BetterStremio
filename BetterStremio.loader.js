@@ -274,7 +274,10 @@
           const PluginModule = new Function(
             `let module = { exports: {} };let exports = module.exports; return ${pluginSource}\n//# sourceURL=${BetterStremio.host}/src/plugins/${pluginName}`
           )();
-          compiledPlugins.push([pluginName, new PluginModule()]);
+          const plugin = new PluginModule();
+          compiledPlugins.push([pluginName, plugin]);
+          if (plugin.bsBlock && !enabledPlugins.includes(pluginName))
+            enabledPlugins.push(pluginName);
         } catch (e) {
           var err = e.constructor(
             `[BetterStremio] Plugin '${pluginName}' failed to compile: ${e.message}`
@@ -369,9 +372,17 @@
 
     BetterStremio.createTemplate(
       "betterStremioTpl",
-      `<div ng-controller="betterStremioCtrl" ng-cloak><div id="addonsCatalog"><div id="addons"><div id="betterstremio-filters" spatial-nav-section="{ id: 'betterstremio-filters', enterTo: 'last-focused'}" spatial-nav-section-active="$state.includes('betterstremio') &amp;&amp; ! prompt" class="options"><div class="filters"><ul class="segments"><li ng-repeat="type in ['plugins', 'themes']" ui-sref="betterstremio({ type: type })" ui-sref-opts="{location: 'replace'}" ng-class="{ selected: type == getSelectedType() }" autofocus="type == getSelectedType()" tabindex="-1"><span ng-if="type == 'plugins'" translate="Plugins" class="label"> </span><span ng-if="type == 'themes'" translate="Themes" class="label"></span></li></ul></div><div class="filters"><span id="betterstremio-version" style="margin-top: 0.5rem;margin-right: 10px;align-items: center;display: flex;color: gray;font-size: 10px;flex-wrap: nowrap;flex-direction: column;">BetterStremio v${
+      `<div ng-controller="betterStremioCtrl" ng-cloak><div id="addonsCatalog"><div id="addons"><div id="betterstremio-filters" spatial-nav-section="{ id: 'betterstremio-filters', enterTo: 'last-focused'}" spatial-nav-section-active="$state.includes('betterstremio') &amp;&amp; ! prompt" class="options"><div class="filters"><ul class="segments"><li ng-repeat="type in ['plugins', 'themes']" autofocus="type == getSelectedType()" ng-click="focusSelectedType(type)" ng-class="{ selected: type == getSelectedType() }" tabindex="-1"><span ng-if="type == 'plugins'" translate="Plugins" class="label"> </span><span ng-if="type == 'themes'" translate="Themes" class="label"></span></li></ul></div><div class="filters">
+      <span id="betterstremio-version" ng-hide="getExploring() === 'true'" style="margin-top: 0.5rem;margin-right: 10px;align-items: center;display: flex;color: gray;font-size: 10px;flex-wrap: nowrap;flex-direction: column;">BetterStremio v${
         BetterStremio.version
-      }<span ng-click="openChangelog()" tabindex="-1" style="cursor: pointer; color: palegoldenrod;">(changelog)</span></span><ul class="segments"><li ng-click="reloadAll()" tabindex="-1"><span class="label">Reload</span></li><li ng-click="toggleExploring()" tabindex="-1"><span class="label">{{getExploring() === "true" ? "My " + (getSelectedType() === "plugins" ? "Plugins" : "Themes") : "Explore"}}</span></li><li ng-click="openFolder()" tabindex="-1"><span class="label">Open folder</span></li></ul></div></div>
+      }<span ng-click="openChangelog()" ng-hide="getExploring() === 'true'" tabindex="-1" style="cursor: pointer; color: palegoldenrod;">(changelog)</span></span>
+      <ul class="segments">
+      <li ng-hide="getExploring() === 'true'" ng-click="reloadAll()" tabindex="-1"><span class="label">Reload</span></li>
+      <li ng-click="toggleExploring()" tabindex="-1">
+      <svg ng-hide="getExploring() !== 'true'" icon="chevron-back" class="icon" viewBox="0 0 512 512" style=" width: 15px; margin-right: 5px; "><path d="M328 112l-144 144 144 144" style="stroke:currentcolor;stroke-linecap:round;stroke-linejoin:round;stroke-width:48;fill:none"></path></svg>
+      <span class="label">{{getExploring() === "true" ? "My " + (getSelectedType() === "plugins" ? "Plugins" : "Themes") : "Explore"}}</span></li>
+      <li ng-hide="getExploring() === 'true'" ng-click="openFolder()" tabindex="-1"><span class="label">Open folder</span></li>
+      </ul></div></div>
       <span ng-hide="getExploring() !== 'true'" style="padding:2rem;"><strong style="color: red;">Warning:</strong> You are about to install community/third-party plugins and themes. These are not verified and <strong>may inject malicious code</strong>, steal your account or compromise your privacy and security.Only install plugins and themes from sources you trust.</span>
       <div class="segments" ng-hide="getExploring() !== 'true'" style="display: flex;flex-wrap: wrap;justify-content: center;align-items: center;">
         <li ng-click="setSort('stars', 'desc')" tabindex="-1" style="margin: 0 0.5rem; padding: 0.5rem 1rem; border: 1px solid gray; border-radius: 25px; cursor: pointer;" ng-class="{ selected: isSorting('stars', 'desc') }">Sort by stars (desc)</li>
@@ -443,6 +454,14 @@
             ? BetterStremio.Internal.plugins
             : BetterStremio.Internal.themes;
 
+        s.focusSelectedType = (type) => {
+          m.go("betterstremio", { type, explore: m.params.explore });
+          document.querySelector(".filters .segments li.selected")?.focus?.();
+          setTimeout(() => {
+            document.querySelector(".filters .segments li.selected")?.focus?.();
+            s.$evalAsync();
+          }, 1);
+        };
         s.getSelectedType = () => m.params.type;
         s.getExploring = () => m.params.explore;
         s.getCatalogs = () => ["plugins", "themes"];
